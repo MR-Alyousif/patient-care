@@ -60,6 +60,7 @@ const config: Config = {
       animation: {
         "background-position-spin":
           "background-position-spin 3000ms infinite alternate",
+        ripple: "ripple var(--duration,2s) ease calc(var(--i, 0)*.2s) infinite",
       },
       keyframes: {
         "background-position-spin": {
@@ -68,6 +69,14 @@ const config: Config = {
           },
           "100%": {
             backgroundPosition: "bottom center",
+          },
+        },
+        ripple: {
+          "0%, 100%": {
+            transform: "translate(-50%, -50%) scale(1)",
+          },
+          "50%": {
+            transform: "translate(-50%, -50%) scale(0.9)",
           },
         },
       },
