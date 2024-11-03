@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import type { Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import Particles from "@/components/ui/particles";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -13,11 +15,17 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: "Patient Care",
   description:
     "Efficiently manage patient prescriptions and pharmacy queues with Patient Care.",
-  viewport: "width=device-width, initial-scale=1.0",
   icons: {
     icon: [
       {
@@ -44,11 +52,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-x-hidden">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
       >
-        {children}
+        <Particles
+          className="absolute inset-0 overflow-hidden"
+          quantity={100}
+          color="#0f2f76"
+        />
+        <div className="relative w-full min-h-screen flex justify-center items-center overflow-x-hidden">
+          {children}
+        </div>
       </body>
     </html>
   );
