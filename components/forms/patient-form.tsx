@@ -62,7 +62,7 @@ export function PatientForm() {
             control={form.control}
             name="patientId"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col items-center">
                 <FormLabel className="text-[#0f2f76]">Patient ID</FormLabel>
                 <FormControl>
                   <InputOTP maxLength={10} {...field}>
@@ -82,7 +82,7 @@ export function PatientForm() {
             control={form.control}
             name="prescriptionNumber"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col items-center">
                 <FormLabel className="text-[#0f2f76]">
                   Prescription Number
                 </FormLabel>
@@ -103,24 +103,25 @@ export function PatientForm() {
               </FormItem>
             )}
           />
-
-          <AnimatedSubscribeButton
-            buttonColor="#0f2f76"
-            buttonTextColor="#ffffff"
-            subscribeStatus={submitStatus}
-            initialText={
-              <span className="group inline-flex items-center">
-                Submit
-                <ChevronRightIcon className="ml-1 size-4 transition-transform duration-300 group-hover:translate-x-1" />
-              </span>
-            }
-            changeText={
-              <span className="group inline-flex items-center">
-                <CheckIcon className="mr-2 size-4" />
-                Submitted
-              </span>
-            }
-          />
+          <div className="flex justify-center w-full">
+            <AnimatedSubscribeButton
+              buttonColor="#0f2f76"
+              buttonTextColor="#ffffff"
+              subscribeStatus={submitStatus}
+              initialText={
+                <span className="group inline-flex items-center">
+                  Submit
+                  <ChevronRightIcon className="ml-1 size-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+              }
+              changeText={
+                <span className="group inline-flex items-center">
+                  <CheckIcon className="mr-2 size-4" />
+                  Submitted
+                </span>
+              }
+            />
+          </div>
         </form>
       </Form>
     </NeonGradientCard>
