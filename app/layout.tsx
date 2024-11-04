@@ -3,6 +3,7 @@ import type { Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Particles from "@/components/ui/particles";
+import RetroGrid from "@/components/ui/retro-grid";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -64,6 +65,7 @@ export default function RootLayout({
         <div className="relative w-full min-h-screen flex justify-center items-center overflow-x-hidden">
           {children}
         </div>
+        <RetroGrid className="absolute inset-0 overflow-hidden" />
       </body>
     </html>
   );
