@@ -1,3 +1,5 @@
+"use client";
+
 import Ripple from "@/components/ui/ripple";
 import FlipText from "@/components/ui/flip-text";
 import NumberTicker from "./ui/number-ticker";
