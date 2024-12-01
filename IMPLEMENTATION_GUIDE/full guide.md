@@ -25,21 +25,25 @@ Our system follows a distributed architecture with these key characteristics:
 We chose RTI Connext DDS (Data Distribution Service) for our system for several compelling reasons:
 
 ### 1. Real-time Performance
+
 - Ultra-low latency (microseconds)
 - Predictable timing behavior
 - Efficient data distribution
 
 ### 2. Reliability Features
+
 - Automatic discovery of publishers and subscribers
 - Built-in redundancy
 - Comprehensive quality of service (QoS) policies
 
 ### 3. Scalability
+
 - Peer-to-peer architecture
 - No message brokers or central servers
 - Efficient bandwidth utilization
 
 ### 4. Healthcare Industry Standards
+
 - Compliant with healthcare data standards
 - Used in many medical device implementations
 - Proven track record in healthcare systems
@@ -186,6 +190,139 @@ class RTIErrorHandler {
     }
 }
 ```
+
+## WebSocket vs RTI Comparison
+
+### Overview Comparison
+
+| Feature | WebSocket | RTI DDS |
+|---------|-----------|---------|
+| Architecture | Client-Server | Peer-to-Peer |
+| Scalability | Limited by server capacity | Highly scalable |
+| Reliability | Basic reliability | Comprehensive QoS policies |
+| Real-time Performance | Milliseconds latency | Microseconds latency |
+| Implementation Complexity | Simpler | More complex |
+| Cost | Open source options available | Commercial licensing |
+| Standards Compliance | WebSocket protocol | DDS standard |
+
+### WebSocket Implementation Approach
+
+WebSocket would be suitable for simpler implementations with these characteristics:
+
+1. **Centralized Architecture**
+   - Single WebSocket server handling all connections
+   - Simpler deployment and maintenance
+   - Good for smaller scale deployments
+
+2. **Basic Implementation Example:**
+
+```typescript
+// Server (Next.js API Route)
+import { WebSocketServer } from 'ws';
+
+export default function handler(req, res) {
+    const wss = new WebSocketServer({ noServer: true });
+    
+    wss.on('connection', (socket) => {
+        socket.on('message', (message) => {
+            // Broadcast to all clients
+            wss.clients.forEach(client => {
+                if (client.readyState === 1) {
+                    client.send(message);
+                }
+            });
+        });
+    });
+    
+    res.socket.server.on('upgrade', (request, socket, head) => {
+        if (request.url === '/api/socket') {
+            wss.handleUpgrade(request, socket, head, (ws) => {
+                wss.emit('connection', ws, request);
+            });
+        }
+    });
+    res.end();
+}
+
+// Client Component
+const TicketComponent = () => {
+    useEffect(() => {
+        const socket = new WebSocket('ws://localhost:3000/api/socket');
+        
+        socket.onmessage = (event) => {
+            const ticket = JSON.parse(event.data);
+            // Handle ticket update
+        };
+        
+        return () => socket.close();
+    }, []);
+};
+```
+
+### Trade-offs Analysis
+
+1. **WebSocket Advantages**
+   - Simpler implementation
+   - Familiar web technology
+   - Easy integration with web frameworks
+   - Lower initial setup complexity
+   - Good documentation and community support
+
+2. **WebSocket Limitations**
+   - Limited quality of service options
+   - No built-in pub/sub patterns
+   - Server becomes single point of failure
+   - Manual handling of reconnection logic
+   - Less suitable for complex data distribution
+
+3. **RTI DDS Advantages**
+   - Superior performance and reliability
+   - Built-in quality of service
+   - No single point of failure
+   - Automatic discovery
+   - Better suited for critical systems
+
+4. **RTI DDS Limitations**
+   - Higher implementation complexity
+   - Steeper learning curve
+   - Commercial licensing costs
+   - More complex deployment
+
+### When to Choose Each
+
+**Choose WebSocket when:**
+- Building a simple real-time web application
+- Working with limited budget
+- Team has primarily web development expertise
+- Scale requirements are moderate
+- Real-time requirements are in milliseconds range
+
+**Choose RTI when:**
+- Building critical healthcare systems
+- Need guaranteed reliability
+- Require complex data distribution patterns
+- Scale requirements are high
+- Real-time requirements are in microseconds range
+- Need comprehensive quality of service controls
+
+### Migration Considerations
+
+If starting with WebSocket and later needing to migrate to RTI:
+
+1. **Architectural Changes**
+   - Replace centralized server with distributed nodes
+   - Implement DDS domains and topics
+   - Add QoS configurations
+
+2. **Code Refactoring**
+   - Replace WebSocket connections with RTI publishers/subscribers
+   - Implement proper error handling
+   - Add monitoring and logging
+
+3. **Testing Requirements**
+   - Performance testing under load
+   - Network reliability testing
+   - Failover scenario testing
 
 ## Best Practices
 
