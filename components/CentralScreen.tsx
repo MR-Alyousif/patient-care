@@ -1,9 +1,9 @@
-
 import { useEffect, useState } from 'react';
-import { Connector } from 'rticonnextdds-connector';
+import Connector from 'rticonnextdds-connector';
+import { Ticket } from '../types/ticket';
 
 export function CentralScreen() {
-  const [currentTicket, setCurrentTicket] = useState(null);
+  const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
 
   useEffect(() => {
     const connector = new Connector('MyParticipantLibrary::Zero', 'DDS.xml');
