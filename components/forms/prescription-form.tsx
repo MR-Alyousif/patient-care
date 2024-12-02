@@ -41,7 +41,7 @@ const formSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1, "Medicine name is required."),
-        quantity: z.number().min(1, "Quantity must be at least 1."),
+        quantity: z.string().min(1, "Quantity must be at least 1."),
         dosage: z.string().min(1, "Dosage is required."),
       })
     )
@@ -81,7 +81,7 @@ export function PrescriptionForm() {
     defaultValues: {
       doctorId: "defaultDoctorId",
       patientId: "",
-      medicines: [{ name: "", quantity: 1, dosage: "" }],
+      medicines: [{ name: "", quantity: "1", dosage: "" }],
     },
   });
 
@@ -215,7 +215,7 @@ export function PrescriptionForm() {
           <Button
             type="button"
             className="bg-[#0f2f76]"
-            onClick={() => append({ name: "", quantity: 1, dosage: "" })}
+            onClick={() => append({ name: "", quantity: "1", dosage: "" })}
           >
             Add Medicine
           </Button>
