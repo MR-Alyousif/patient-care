@@ -1,0 +1,20 @@
+
+<dds>
+  <types>
+    <struct name="Ticket">
+      <member name="number" type="long" />
+      <member name="issuedAt" type="string" />
+      <member name="priority" type="string" />
+    </struct>
+  </types>
+  <domain_participants>
+    <domain_participant name="MyParticipantLibrary::Zero">
+      <!-- ...existing code... -->
+    </domain_participant>
+  </domain_participants>
+  <topics>
+    <topic name="TicketTopic" register_type_ref="Ticket" />
+    <topic name="PriorityTopic" register_type_ref="Ticket" />
+  </topics>
+  <!-- ...existing code... -->
+</dds>
