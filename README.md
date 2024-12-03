@@ -57,7 +57,7 @@ The Patient Care Management System is a comprehensive solution that connects doc
 
    ```bash
    # Clone the repository
-   git clone [repository-url]
+   git clone https://github.com/MR-Alyousif/patient-care.git
 
    # Install dependencies
    npm install
@@ -127,7 +127,11 @@ Detailed implementation guides and documentation can be found in the `docs` dire
 
 [Your License]
 
-## Contributors
+## Contributors: Team 5 Members
 
-[Your Name]
-[Course Instructor]
+- MOHAMMED ALYOUSIF
+- OSAMA ALIBRAHIM
+- MOHAMMAD ALSHARIF
+- ALI MOHAMED ELMATARWY
+
+Course Instructor: Dr. Ayaz ul Hassan Khan
