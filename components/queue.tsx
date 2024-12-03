@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -17,127 +17,113 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 interface Medicine {
   name: string;
-  quantity: number;
+  quantity: string;
   dosage: string;
 }
 
 interface Prescription {
-  id: number;
-  patientName: string;
+  prescriptionId: string;
+  patientId: string;
   medicines: Medicine[];
+  status: string;
+  ticketNumber: number | null;
 }
 
-const prescriptions: Prescription[] = [
-  {
-    id: 1,
-    patientName: "John Doe",
-    medicines: [
-      { name: "Amoxicillin", quantity: 2, dosage: "500mg" },
-      { name: "Ibuprofen", quantity: 1, dosage: "200mg" },
-      { name: "Diazepam", quantity: 1, dosage: "5mg" },
-      { name: "Cetirizine", quantity: 1, dosage: "10mg" },
-      { name: "Lorazepam", quantity: 1, dosage: "1mg" },
-      { name: "Omeprazole", quantity: 1, dosage: "20mg" },
-    ],
-  },
-  {
-    id: 2,
-    patientName: "Jane Smith",
-    medicines: [{ name: "Paracetamol", quantity: 3, dosage: "500mg" }],
-  },
-  {
-    id: 3,
-    patientName: "Alice Johnson",
-    medicines: [
-      { name: "Aspirin", quantity: 1, dosage: "100mg" },
-      { name: "Omeprazole", quantity: 1, dosage: "20mg" },
-    ],
-  },
-  {
-    id: 4,
-    patientName: "Bob Brown",
-    medicines: [{ name: "Loratadine", quantity: 1, dosage: "10mg" }],
-  },
-  {
-    id: 5,
-    patientName: "Charlie White",
-    medicines: [{ name: "Loratadine", quantity: 2, dosage: "10mg" }],
-  },
-];
-
 export function Queue() {
-  const [status, setStatus] = useState<{
-    [key: number]: "inProgress" | "ready" | null;
-  }>({});
+  const [prescriptions, setPrescriptions] = useState<Record<string, Prescription>>({});
 
-  const handleMarkInProgress = (id: number) => {
-    setStatus((prev) => ({ ...prev, [id]: "inProgress" }));
+  // Load prescriptions from localStorage
+  React.useEffect(() => {
+    const loadPrescriptions = () => {
+      const storedPrescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
+      setPrescriptions(storedPrescriptions);
+    };
+
+    loadPrescriptions();
+    // Set up an interval to check for new prescriptions
+    const interval = setInterval(loadPrescriptions, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleComplete = (prescriptionId: string) => {
+    const updatedPrescriptions = { ...prescriptions };
+    const prescription = updatedPrescriptions[prescriptionId];
+    if (prescription && prescription.status === "processing") {
+      prescription.status = "ready";
+      localStorage.setItem("prescriptions", JSON.stringify(updatedPrescriptions));
+      setPrescriptions(updatedPrescriptions);
+    }
   };
 
-  const handleMarkReady = (id: number) => {
-    setStatus((prev) => ({ ...prev, [id]: "ready" }));
-  };
+  const processingPrescriptions = Object.entries(prescriptions)
+    .filter(([_, prescription]) => prescription.status === "processing")
+    .map(([id, prescription]) => ({ id, ...prescription }));
 
   return (
-    <Carousel className="w-full max-w-5xl">
-      <CarouselContent className="-ml-1">
-        {prescriptions.map((prescription) => (
-          <CarouselItem
-            key={prescription.id}
-            className="pl-1 md:basis-1/2 lg:basis-1/3"
-          >
-            <Card className="p-4 h-96 w-80 text-[#0f2f76]">
-              <CardHeader>
-                <CardTitle>Queue Position: {prescription.id}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-lg font-semibold">
-                  Patient: {prescription.patientName}
-                </p>
-
-                <ScrollArea className="h-48 my-2">
-                  <div className="p-2">
-                    {prescription.medicines.map((medicine, index) => (
-                      <div key={index} className="text-sm mb-2">
-                        <span className="font-medium text-[#81d4fa]">
-                          {medicine.name}
-                        </span>{" "}
-                        - {medicine.quantity} units, {medicine.dosage}
-                        {index < prescription.medicines.length - 1 && (
-                          <Separator className="my-2" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="vertical" />
-                </ScrollArea>
-              </CardContent>
-              <CardFooter className="flex justify-end space-x-2">
-                {status[prescription.id] !== "inProgress" && (
-                  <Button onClick={() => handleMarkInProgress(prescription.id)}>
-                    Mark as In Progress
-                  </Button>
-                )}
-                {status[prescription.id] === "inProgress" && (
-                  <Button
-                    onClick={() => handleMarkReady(prescription.id)}
-                    variant="secondary"
-                  >
-                    Mark as Ready
-                  </Button>
-                )}
-              </CardFooter>
-            </Card>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
-      <CarouselPrevious />
-      <CarouselNext />
-    </Carousel>
+    <div className="w-full max-w-4xl px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center text-[#0f2f76]">
+            Processing Prescriptions
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {processingPrescriptions.length === 0 ? (
+            <p className="text-center text-gray-500">No prescriptions in queue</p>
+          ) : (
+            <Carousel>
+              <CarouselContent>
+                {processingPrescriptions.map((prescription) => (
+                  <CarouselItem key={prescription.id} className="md:basis-1/2 lg:basis-1/3">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">
+                          Ticket #{prescription.ticketNumber}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-[200px] rounded-md border p-4">
+                          {prescription.medicines.map((medicine, index) => (
+                            <div key={index}>
+                              <div className="text-sm">
+                                <p className="font-medium">{medicine.name}</p>
+                                <p className="text-gray-500">
+                                  Quantity: {medicine.quantity}
+                                </p>
+                                <p className="text-gray-500">
+                                  Dosage: {medicine.dosage}
+                                </p>
+                              </div>
+                              {index < prescription.medicines.length - 1 && (
+                                <Separator className="my-2" />
+                              )}
+                            </div>
+                          ))}
+                        </ScrollArea>
+                      </CardContent>
+                      <CardFooter className="flex justify-center">
+                        <Button
+                          onClick={() => handleComplete(prescription.id)}
+                          className="bg-[#0f2f76] text-white hover:bg-[#1a4ba5]"
+                        >
+                          Mark as Ready
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
