@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,24 +19,20 @@ import {
 } from "@/components/ui/carousel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { ddsConnector, type Prescription } from "@/lib/dds-connector";
+import type { Prescription } from "@/lib/dds-connector";
+import { useSocket } from "@/lib/use-socket";
 
 export function Queue() {
   const [prescriptions, setPrescriptions] = useState<
     Record<string, Prescription>
   >({});
 
-  // Subscribe to prescription updates
-  useEffect(() => {
-    const timer = ddsConnector.startSubscription((prescription) => {
-      setPrescriptions((prev) => ({
-        ...prev,
-        [prescription.prescriptionId]: prescription,
-      }));
-    });
-
-    return () => ddsConnector.stopSubscription(timer);
-  }, []);
+  const { publishPrescription } = useSocket((prescription) => {
+    setPrescriptions((prev) => ({
+      ...prev,
+      [prescription.prescriptionId]: prescription,
+    }));
+  });
 
   const handleComplete = async (prescriptionId: string) => {
     const prescription = prescriptions[prescriptionId];
@@ -48,8 +44,7 @@ export function Queue() {
       };
 
       try {
-        // Publish updated prescription to DDS
-        await ddsConnector.publishPrescription(updatedPrescription);
+        await publishPrescription(updatedPrescription);
 
         // Update localStorage for backup
         const storedPrescriptions = JSON.parse(
