@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
+  CardContent,
   CardFooter,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -19,49 +19,55 @@ import {
 } from "@/components/ui/carousel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-
-interface Medicine {
-  name: string;
-  quantity: string;
-  dosage: string;
-}
-
-interface Prescription {
-  prescriptionId: string;
-  patientId: string;
-  medicines: Medicine[];
-  status: string;
-  ticketNumber: number | null;
-}
+import { ddsConnector, type Prescription } from "@/lib/dds-connector";
 
 export function Queue() {
-  const [prescriptions, setPrescriptions] = useState<Record<string, Prescription>>({});
+  const [prescriptions, setPrescriptions] = useState<
+    Record<string, Prescription>
+  >({});
 
-  // Load prescriptions from localStorage
-  React.useEffect(() => {
-    const loadPrescriptions = () => {
-      const storedPrescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
-      setPrescriptions(storedPrescriptions);
-    };
+  // Subscribe to prescription updates
+  useEffect(() => {
+    const timer = ddsConnector.startSubscription((prescription) => {
+      setPrescriptions((prev) => ({
+        ...prev,
+        [prescription.prescriptionId]: prescription,
+      }));
+    });
 
-    loadPrescriptions();
-    // Set up an interval to check for new prescriptions
-    const interval = setInterval(loadPrescriptions, 5000);
-    return () => clearInterval(interval);
+    return () => ddsConnector.stopSubscription(timer);
   }, []);
 
-  const handleComplete = (prescriptionId: string) => {
-    const updatedPrescriptions = { ...prescriptions };
-    const prescription = updatedPrescriptions[prescriptionId];
+  const handleComplete = async (prescriptionId: string) => {
+    const prescription = prescriptions[prescriptionId];
     if (prescription && prescription.status === "processing") {
-      prescription.status = "ready";
-      localStorage.setItem("prescriptions", JSON.stringify(updatedPrescriptions));
-      setPrescriptions(updatedPrescriptions);
+      const updatedPrescription = {
+        ...prescription,
+        status: "ready",
+        timestamp: new Date().toISOString(),
+      };
+
+      try {
+        // Publish updated prescription to DDS
+        await ddsConnector.publishPrescription(updatedPrescription);
+
+        // Update localStorage for backup
+        const storedPrescriptions = JSON.parse(
+          localStorage.getItem("prescriptions") || "{}"
+        );
+        storedPrescriptions[prescriptionId] = updatedPrescription;
+        localStorage.setItem(
+          "prescriptions",
+          JSON.stringify(storedPrescriptions)
+        );
+      } catch (error) {
+        console.error("Error updating prescription status:", error);
+      }
     }
   };
 
   const processingPrescriptions = Object.entries(prescriptions)
-    .filter(([_, prescription]) => prescription.status === "processing")
+    .filter(([, prescription]) => prescription.status === "processing")
     .map(([id, prescription]) => ({ id, ...prescription }));
 
   return (
@@ -74,12 +80,17 @@ export function Queue() {
         </CardHeader>
         <CardContent>
           {processingPrescriptions.length === 0 ? (
-            <p className="text-center text-gray-500">No prescriptions in queue</p>
+            <p className="text-center text-gray-500">
+              No prescriptions in queue
+            </p>
           ) : (
             <Carousel>
               <CarouselContent>
                 {processingPrescriptions.map((prescription) => (
-                  <CarouselItem key={prescription.id} className="md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem
+                    key={prescription.id}
+                    className="md:basis-1/2 lg:basis-1/3"
+                  >
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg">
