@@ -29,8 +29,7 @@ const formSchema = z.object({
     .length(10, { message: "Patient ID must be exactly 10 digits." })
     .regex(/^\d+$/, { message: "Patient ID must contain only digits." }),
   prescriptionNumber: z.string().regex(/^[A-Za-z]\d{6}$/, {
-    message:
-      "Prescription number must start with a letter followed by 6 digits.",
+    message: "Prescription number must start with a letter followed by 6 digits.",
   }),
 });
 
@@ -38,18 +37,46 @@ type FormSchema = z.infer<typeof formSchema>;
 
 export function PatientForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      patientId: "",
       prescriptionNumber: "",
     },
   });
 
   function onSubmit(values: FormSchema) {
-    console.log(values);
-    setSubmitStatus(true);
+    try {
+      // Get prescriptions from localStorage
+      const prescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
+      const prescription = prescriptions[values.prescriptionNumber];
+
+      if (!prescription) {
+        setError("Prescription not found");
+        return;
+      }
+
+      if (prescription.status !== "pending") {
+        setError("Prescription has already been processed");
+        return;
+      }
+
+      const newTicketNumber = Math.floor(Math.random() * 900) + 100; // 3-digit number
+      
+      // Update prescription status
+      prescription.status = "processing";
+      prescription.ticketNumber = newTicketNumber;
+      localStorage.setItem("prescriptions", JSON.stringify(prescriptions));
+
+      setTicketNumber(newTicketNumber);
+      setSubmitStatus(true);
+      setError(null);
+    } catch (error) {
+      console.error("Error processing prescription:", error);
+      setError("An error occurred while processing your prescription");
+    }
   }
 
   return (
@@ -103,6 +130,11 @@ export function PatientForm() {
                       </InputOTP>
                     </FormControl>
                     <FormMessage />
+                    {error && (
+                      <p className="text-sm font-medium text-red-500 mt-2">
+                        {error}
+                      </p>
+                    )}
                   </FormItem>
                 )}
               />
@@ -129,7 +161,9 @@ export function PatientForm() {
           </Form>
         </NeonGradientCard>
       )}
-      {submitStatus && <Order value={1} title={"Your ticket number is"} />}
+      {submitStatus && ticketNumber && (
+        <Order value={ticketNumber} title={"Your ticket number is"} />
+      )}
     </div>
   );
 }
