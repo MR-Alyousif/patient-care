@@ -1,9 +1,9 @@
 "use client";
 
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { z } from "zod";
+import { useState, useEffect } from "react";
 import {
   InputOTP,
   InputOTPGroup,
@@ -22,6 +22,7 @@ import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { NeonGradientCard } from "../ui/neon-gradient-card";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { Order } from "../order";
+import { ddsConnector, type Prescription } from "@/lib/dds-connector";
 
 const formSchema = z.object({
   patientId: z
@@ -29,7 +30,8 @@ const formSchema = z.object({
     .length(10, { message: "Patient ID must be exactly 10 digits." })
     .regex(/^\d+$/, { message: "Patient ID must contain only digits." }),
   prescriptionNumber: z.string().regex(/^[A-Za-z]\d{6}$/, {
-    message: "Prescription number must start with a letter followed by 6 digits.",
+    message:
+      "Prescription number must start with a letter followed by 6 digits.",
   }),
 });
 
@@ -39,18 +41,32 @@ export function PatientForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [prescriptions, setPrescriptions] = useState<
+    Record<string, Prescription>
+  >({});
+
+  useEffect(() => {
+    // Subscribe to prescription updates
+    const timer = ddsConnector.startSubscription((prescription) => {
+      setPrescriptions((prev) => ({
+        ...prev,
+        [prescription.prescriptionId]: prescription,
+      }));
+    });
+
+    return () => ddsConnector.stopSubscription(timer);
+  }, []);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      patientId: "",
       prescriptionNumber: "",
     },
   });
 
-  function onSubmit(values: FormSchema) {
+  async function onSubmit(values: FormSchema) {
     try {
-      // Get prescriptions from localStorage
-      const prescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
       const prescription = prescriptions[values.prescriptionNumber];
 
       if (!prescription) {
@@ -63,12 +79,32 @@ export function PatientForm() {
         return;
       }
 
+      if (prescription.patientId !== values.patientId) {
+        setError("Patient ID does not match the prescription");
+        return;
+      }
+
       const newTicketNumber = Math.floor(Math.random() * 900) + 100; // 3-digit number
-      
-      // Update prescription status
-      prescription.status = "processing";
-      prescription.ticketNumber = newTicketNumber;
-      localStorage.setItem("prescriptions", JSON.stringify(prescriptions));
+
+      // Update prescription status via DDS
+      const updatedPrescription = {
+        ...prescription,
+        status: "processing",
+        ticketNumber: newTicketNumber,
+        timestamp: new Date().toISOString(),
+      };
+
+      await ddsConnector.publishPrescription(updatedPrescription);
+
+      // Update localStorage for backup
+      const storedPrescriptions = JSON.parse(
+        localStorage.getItem("prescriptions") || "{}"
+      );
+      storedPrescriptions[values.prescriptionNumber] = updatedPrescription;
+      localStorage.setItem(
+        "prescriptions",
+        JSON.stringify(storedPrescriptions)
+      );
 
       setTicketNumber(newTicketNumber);
       setSubmitStatus(true);
