@@ -32,11 +32,12 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
   patientId: z.string().min(1, "Patient ID is required."),
+  prescriptionId: z.string(),
   medicines: z
     .array(
       z.object({
@@ -75,24 +76,48 @@ const medicinesList = [
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
+  const [prescriptionId, setPrescriptionId] = useState("");
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       doctorId: "defaultDoctorId",
       patientId: "",
+      prescriptionId: "",
       medicines: [{ name: "", quantity: "1", dosage: "" }],
     },
   });
+
+  useEffect(() => {
+    // Generate a random prescription ID: Letter followed by 6 digits
+    const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+    const numbers = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const newPrescriptionId = `${letter}${numbers}`;
+    setPrescriptionId(newPrescriptionId);
+    form.setValue("prescriptionId", newPrescriptionId);
+  }, []);
 
   const { fields, append } = useFieldArray({
     control: form.control,
     name: "medicines",
   });
 
-  const onSubmit = (data: FormSchema) => {
-    console.log(data);
-    setSubmitStatus(true);
+  const onSubmit = async (data: FormSchema) => {
+    try {
+      // In a real app, we would use the DDS connector here
+      console.log("Prescription submitted:", data);
+      // Store the prescription in localStorage for demo purposes
+      const prescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
+      prescriptions[data.prescriptionId] = {
+        ...data,
+        status: "pending",
+        ticketNumber: null
+      };
+      localStorage.setItem("prescriptions", JSON.stringify(prescriptions));
+      setSubmitStatus(true);
+    } catch (error) {
+      console.error("Error submitting prescription:", error);
+    }
   };
 
   return (
