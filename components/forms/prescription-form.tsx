@@ -3,8 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ddsConnector, type Prescription } from "@/lib/dds-connector";
+import type { Prescription } from "@/lib/dds-connector";
+import { useSocket } from "@/lib/use-socket";
 import {
   Command,
   CommandGroup,
@@ -32,8 +34,6 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
-
-import { useState, useEffect } from "react";
 
 const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
@@ -79,6 +79,11 @@ export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [, setPrescriptionId] = useState("");
 
+  const { publishPrescription } = useSocket((prescription) => {
+    // Handle any updates to this prescription if needed
+    console.log("Prescription update:", prescription);
+  });
+
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,6 +92,11 @@ export function PrescriptionForm() {
       prescriptionId: "",
       medicines: [{ name: "", quantity: "1", dosage: "" }],
     },
+  });
+
+  const { fields, append } = useFieldArray({
+    control: form.control,
+    name: "medicines",
   });
 
   useEffect(() => {
@@ -100,11 +110,6 @@ export function PrescriptionForm() {
     form.setValue("prescriptionId", newPrescriptionId);
   }, [form]);
 
-  const { fields, append } = useFieldArray({
-    control: form.control,
-    name: "medicines",
-  });
-
   const onSubmit = async (data: FormSchema) => {
     try {
       const prescription: Prescription = {
@@ -114,8 +119,8 @@ export function PrescriptionForm() {
         timestamp: new Date().toISOString(),
       };
 
-      // Publish to DDS
-      await ddsConnector.publishPrescription(prescription);
+      // Publish via WebSocket
+      await publishPrescription(prescription);
 
       // Also store in localStorage for backup/demo purposes
       const prescriptions = JSON.parse(
