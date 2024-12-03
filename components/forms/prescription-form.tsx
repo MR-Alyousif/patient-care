@@ -3,8 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
-// import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ddsConnector, type Prescription } from "@/lib/dds-connector";
 import {
   Command,
   CommandGroup,
@@ -32,6 +32,7 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
+
 import { useState, useEffect } from "react";
 
 const formSchema = z.object({
@@ -76,7 +77,7 @@ const medicinesList = [
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
-  const [prescriptionId, setPrescriptionId] = useState("");
+  const [, setPrescriptionId] = useState("");
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -91,11 +92,13 @@ export function PrescriptionForm() {
   useEffect(() => {
     // Generate a random prescription ID: Letter followed by 6 digits
     const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-    const numbers = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+    const numbers = Math.floor(Math.random() * 1000000)
+      .toString()
+      .padStart(6, "0");
     const newPrescriptionId = `${letter}${numbers}`;
     setPrescriptionId(newPrescriptionId);
     form.setValue("prescriptionId", newPrescriptionId);
-  }, []);
+  }, [form]);
 
   const { fields, append } = useFieldArray({
     control: form.control,
@@ -104,16 +107,23 @@ export function PrescriptionForm() {
 
   const onSubmit = async (data: FormSchema) => {
     try {
-      // In a real app, we would use the DDS connector here
-      console.log("Prescription submitted:", data);
-      // Store the prescription in localStorage for demo purposes
-      const prescriptions = JSON.parse(localStorage.getItem("prescriptions") || "{}");
-      prescriptions[data.prescriptionId] = {
+      const prescription: Prescription = {
         ...data,
         status: "pending",
-        ticketNumber: null
+        ticketNumber: null,
+        timestamp: new Date().toISOString(),
       };
+
+      // Publish to DDS
+      await ddsConnector.publishPrescription(prescription);
+
+      // Also store in localStorage for backup/demo purposes
+      const prescriptions = JSON.parse(
+        localStorage.getItem("prescriptions") || "{}"
+      );
+      prescriptions[data.prescriptionId] = prescription;
       localStorage.setItem("prescriptions", JSON.stringify(prescriptions));
+
       setSubmitStatus(true);
     } catch (error) {
       console.error("Error submitting prescription:", error);
