@@ -7,7 +7,11 @@ import BlurFade from "./ui/blur-fade";
 import Image from "next/image";
 import logo from "./logo.png";
 
-export function Order() {
+interface OrderProps {
+  value: number;
+}
+
+export function Order({ value }: OrderProps) {
   return (
     <div className="relative flex flex-col items-center justify-center w-full h-full p-4 space-y-4 text-center">
       <BlurFade duration={0.6} yOffset={10} blur="10px">
@@ -25,7 +29,7 @@ export function Order() {
       </p>
       <div className="relative flex h-[500px] w-full flex-col items-center justify-center overflow-hidden rounded-lg bg-background md:shadow-xl">
         <p className="whitespace-pre-wrap text-8xl font-medium tracking-tighter text-[#0f2f76] dark:text-white">
-          <NumberTicker value={10} />
+          <NumberTicker value={value} />
         </p>
         <Ripple />
       </div>
