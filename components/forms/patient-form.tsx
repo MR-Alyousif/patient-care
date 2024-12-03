@@ -129,7 +129,7 @@ export function PatientForm() {
           </Form>
         </NeonGradientCard>
       )}
-      {submitStatus && <Order />}
+      {submitStatus && <Order value={1} title={"Your ticket number is"} />}
     </div>
   );
 }
