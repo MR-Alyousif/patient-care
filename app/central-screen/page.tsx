@@ -1,25 +1,21 @@
 "use client";
+
 import { Order } from "@/components/order";
-import { useState, useEffect } from "react";
-import { ddsConnector } from "@/lib/dds-connector";
+import { useState } from "react";
 import type { Prescription } from "@/lib/dds-connector";
+import { useSocket } from "@/lib/use-socket";
 
 export default function CentralScreen() {
   const [prescriptions, setPrescriptions] = useState<
     Record<string, Prescription>
   >({});
 
-  useEffect(() => {
-    // Subscribe to prescription updates
-    const timer = ddsConnector.startSubscription((prescription) => {
-      setPrescriptions((prev) => ({
-        ...prev,
-        [prescription.prescriptionId]: prescription,
-      }));
-    });
-
-    return () => ddsConnector.stopSubscription(timer);
-  }, []);
+  useSocket((prescription) => {
+    setPrescriptions((prev) => ({
+      ...prev,
+      [prescription.prescriptionId]: prescription,
+    }));
+  });
 
   // Get ready tickets sorted by timestamp
   const readyTickets = Object.values(prescriptions)
