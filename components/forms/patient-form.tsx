@@ -22,7 +22,8 @@ import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { NeonGradientCard } from "../ui/neon-gradient-card";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { Order } from "../order";
-import { ddsConnector, type Prescription } from "@/lib/dds-connector";
+import { useSocket } from "@/lib/use-socket";
+import type { Prescription } from "@/lib/dds-connector";
 
 const formSchema = z.object({
   patientId: z
@@ -45,16 +46,23 @@ export function PatientForm() {
     Record<string, Prescription>
   >({});
 
+  const { publishPrescription } = useSocket((prescription) => {
+    setPrescriptions((prev) => ({
+      ...prev,
+      [prescription.prescriptionId]: prescription,
+    }));
+  });
+
   useEffect(() => {
     // Subscribe to prescription updates
-    const timer = ddsConnector.startSubscription((prescription) => {
+    const { publishPrescription } = useSocket((prescription) => {
       setPrescriptions((prev) => ({
         ...prev,
         [prescription.prescriptionId]: prescription,
       }));
     });
 
-    return () => ddsConnector.stopSubscription(timer);
+    // No need for explicit cleanup as it's handled in useSocket's useEffect
   }, []);
 
   const form = useForm<FormSchema>({
@@ -86,7 +94,6 @@ export function PatientForm() {
 
       const newTicketNumber = Math.floor(Math.random() * 900) + 100; // 3-digit number
 
-      // Update prescription status via DDS
       const updatedPrescription = {
         ...prescription,
         status: "processing",
@@ -94,21 +101,26 @@ export function PatientForm() {
         timestamp: new Date().toISOString(),
       };
 
-      await ddsConnector.publishPrescription(updatedPrescription);
+      try {
+        await publishPrescription(updatedPrescription);
 
-      // Update localStorage for backup
-      const storedPrescriptions = JSON.parse(
-        localStorage.getItem("prescriptions") || "{}"
-      );
-      storedPrescriptions[values.prescriptionNumber] = updatedPrescription;
-      localStorage.setItem(
-        "prescriptions",
-        JSON.stringify(storedPrescriptions)
-      );
+        // Update localStorage for backup
+        const storedPrescriptions = JSON.parse(
+          localStorage.getItem("prescriptions") || "{}"
+        );
+        storedPrescriptions[values.prescriptionNumber] = updatedPrescription;
+        localStorage.setItem(
+          "prescriptions",
+          JSON.stringify(storedPrescriptions)
+        );
 
-      setTicketNumber(newTicketNumber);
-      setSubmitStatus(true);
-      setError(null);
+        setTicketNumber(newTicketNumber);
+        setSubmitStatus(true);
+        setError(null);
+      } catch (error) {
+        console.error("Error updating prescription status:", error);
+        setError("An error occurred while processing your prescription");
+      }
     } catch (error) {
       console.error("Error processing prescription:", error);
       setError("An error occurred while processing your prescription");
