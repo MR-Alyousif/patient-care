@@ -1,14 +1,19 @@
 "use client";
 import { Order } from "@/components/order";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function CentralScreen() {
-  const [currentNumber, setCurrentNumber] = useState(0);
+  const [currentNumber, setCurrentNumber] = useState<number | undefined>(
+    undefined
+  );
 
-  setCurrentNumber(1);
+  useEffect(() => {
+    setCurrentNumber(1);
+  }, []);
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <Order value={currentNumber} title={"Now Serving"} />
+      <Order value={currentNumber || 0} title={"Now Serving"} />
     </main>
   );
 }
