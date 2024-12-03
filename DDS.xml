@@ -1,4 +1,3 @@
-
 <dds>
   <types>
     <struct name="Ticket">
@@ -6,15 +5,60 @@
       <member name="issuedAt" type="string" />
       <member name="priority" type="string" />
     </struct>
+    <struct name="Medicine">
+      <member name="name" type="string" />
+      <member name="quantity" type="string" />
+      <member name="dosage" type="string" />
+    </struct>
+    <struct name="Prescription">
+      <member name="prescriptionId" type="string" />
+      <member name="patientId" type="string" />
+      <member name="medicines" type="sequence" subtype="Medicine" />
+      <member name="status" type="string" />
+      <member name="ticketNumber" type="long" />
+      <member name="timestamp" type="string" />
+    </struct>
   </types>
   <domain_participants>
     <domain_participant name="MyParticipantLibrary::Zero">
-      <!-- ...existing code... -->
+    </domain_participant>
+    <domain_participant name="PrescriptionSystem">
+      <domain_ref>0</domain_ref>
+      <participant_qos>
+        <transport_builtin>
+          <mask>UDPV4</mask>
+        </transport_builtin>
+      </participant_qos>
     </domain_participant>
   </domain_participants>
   <topics>
     <topic name="TicketTopic" register_type_ref="Ticket" />
     <topic name="PriorityTopic" register_type_ref="Ticket" />
+    <topic name="PrescriptionTopic" register_type_ref="Prescription">
+      <qos>
+        <reliability>
+          <kind>RELIABLE</kind>
+        </reliability>
+        <durability>
+          <kind>TRANSIENT_LOCAL</kind>
+        </durability>
+        <history>
+          <kind>KEEP_LAST</kind>
+          <depth>10</depth>
+        </history>
+      </qos>
+    </topic>
   </topics>
-  <!-- ...existing code... -->
+  <publishers>
+    <publisher name="PrescriptionPublisher">
+      <participant_ref>PrescriptionSystem</participant_ref>
+      <data_writer name="PrescriptionWriter" topic_ref="PrescriptionTopic" />
+    </publisher>
+  </publishers>
+  <subscribers>
+    <subscriber name="PrescriptionSubscriber">
+      <participant_ref>PrescriptionSystem</participant_ref>
+      <data_reader name="PrescriptionReader" topic_ref="PrescriptionTopic" />
+    </subscriber>
+  </subscribers>
 </dds>
