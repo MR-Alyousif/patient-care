@@ -1,36 +1,133 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Patient Care Management System
+
+A real-time prescription tracking system built for COE 427 Distributed Computing. This system demonstrates the implementation of a distributed system using RTI Connext DDS (Data Distribution Service) in a healthcare context.
+
+## Project Overview
+
+The Patient Care Management System is a comprehensive solution that connects doctors, patients, pharmacists, and a central display screen in real-time. The system uses DDS for reliable, real-time data distribution across all components.
+
+### Key Components
+
+1. **Doctor's Dashboard**
+   - Generate unique prescription IDs
+   - Create and submit prescriptions
+   - Real-time status tracking
+
+2. **Patient Interface**
+   - Prescription verification
+   - Ticket number generation
+   - Status tracking
+
+3. **Pharmacist Queue**
+   - View incoming prescriptions
+   - Process prescriptions
+   - Update prescription status
+
+4. **Central Display Screen**
+   - Show ready prescriptions
+   - Display "Now Serving" and "Up Next" tickets
+   - Real-time updates
+
+## Technical Implementation
+
+### Technologies Used
+
+- Next.js 14 (React Framework)
+- TypeScript
+- RTI Connext DDS
+- Tailwind CSS
+- Zod (Schema Validation)
+- Framer Motion (Animations)
+
+### DDS Implementation
+
+- Uses RTI Connext DDS for real-time data distribution
+- Implements reliable messaging with transient local durability
+- Configured topics: PrescriptionTopic, TicketTopic
+- Custom DDS connector with singleton pattern
 
 ## Getting Started
 
-First, run the development server:
+1. **Prerequisites**
+   - Node.js 18+
+   - RTI Connext DDS installation
+   - DDS license (if required)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Installation**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+   ```bash
+   # Clone the repository
+   git clone [repository-url]
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   # Install dependencies
+   npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   # Set up DDS environment
+   # Follow the setup guide in 'docs/dds-setup.md'
+   ```
 
-## Learn More
+3. **Running the Application**
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   # Start the development server
+   npm run dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   # The application will be available at:
+   # - Doctor's Dashboard: http://localhost:3000/doctor
+   # - Patient Form: http://localhost:3000/patient
+   # - Pharmacist Queue: http://localhost:3000/pharmacist
+   # - Central Screen: http://localhost:3000/central-screen
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## System Architecture
 
-## Deploy on Vercel
+### Data Flow
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Doctor creates prescription → DDS publishes to PrescriptionTopic
+2. Patient verifies prescription → Updates prescription status
+3. Pharmacist processes prescription → Updates status to "processing"
+4. Prescription ready → Updates status to "ready"
+5. Central screen displays ready prescriptions
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Validation Rules
+
+- Prescription ID: Letter + 6 digits
+- Ticket Number: 3-digit random number
+- Patient ID: 10-digit numeric string
+
+## Course Information
+
+This project was developed as part of COE 427 Distributed Computing to demonstrate:
+
+- Real-time distributed systems
+- Publisher-Subscriber architecture
+- Data Distribution Service (DDS) implementation
+- Reliable messaging patterns
+- Distributed state management
+
+## Implementation Details
+
+Detailed implementation guides and documentation can be found in the `docs` directory:
+
+- DDS Configuration
+- Component Architecture
+- State Management
+- Error Handling
+- Testing Procedures
+
+## Future Improvements
+
+- Authentication and authorization
+- Persistent storage solution
+- Enhanced error handling
+- Comprehensive logging
+- Load balancing
+
+## License
+
+[Your License]
+
+## Contributors
+
+[Your Name]
+[Course Instructor]

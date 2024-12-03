@@ -1,6 +1,7 @@
 # Patient Care Management System - System Architecture
 
 ## Table of Contents
+
 1. [System Overview](#system-overview)
 2. [High-Level Architecture](#high-level-architecture)
 3. [Component Architecture](#component-architecture)
@@ -14,6 +15,7 @@
 The Patient Care Management System is a distributed healthcare management solution designed to streamline patient flow and communication between different healthcare providers. The system utilizes RTI DDS (Data Distribution Service) for real-time, reliable communication between components.
 
 ### Key System Requirements
+
 - Real-time updates (microsecond latency)
 - High reliability and fault tolerance
 - Scalable architecture
@@ -23,22 +25,23 @@ The Patient Care Management System is a distributed healthcare management soluti
 ## High-Level Architecture
 
 ```plaintext
-┌─────────────────┐     ┌──────────────────┐     ┌────────────────┐
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │ Ticket Dispenser│     │  Central Screen  │     │ Doctor Interface│
-│   (Publisher)   │────▶│   (Subscriber)   │◀────│   (Pub/Sub)    │
-└─────────────────┘     └──────────────────┘     └────────────────┘
+│   (Publisher)   │────▶│   (Subscriber)   │◀───│   (Pub/Sub)     │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
          │                        ▲                       │
          │                        │                       │
          │                        │                       ▼
-         │                ┌──────────────────┐    ┌────────────────┐
-         └───────────────▶│   RTI DDS Bus   │◀───│   Pharmacist   │
-                         │  (Data Space)     │    │   Interface    │
+         │               ┌──────────────────┐    ┌────────────────┐
+         └─────────────▶│   RTI DDS Bus    │◀───│   Pharmacist   │
+                         │  (Data Space)    │    │   Interface    │
                          └──────────────────┘    └────────────────┘
 ```
 
 ## Component Architecture
 
 ### 1. Ticket Dispenser Component
+
 ```typescript
 interface TicketDispenser {
     // Core functionality
@@ -63,6 +66,7 @@ interface TicketDispenser {
 ```
 
 ### 2. Central Screen Component
+
 ```typescript
 interface CentralScreen {
     // Display functionality
@@ -77,6 +81,7 @@ interface CentralScreen {
 ```
 
 ### 3. Doctor Interface Component
+
 ```typescript
 interface DoctorInterface {
     // Patient management
@@ -95,6 +100,7 @@ interface DoctorInterface {
 ```
 
 ### 4. Pharmacist Interface Component
+
 ```typescript
 interface PharmacistInterface {
     // Prescription handling
@@ -107,6 +113,7 @@ interface PharmacistInterface {
 ## Data Architecture
 
 ### 1. Domain Model
+
 ```typescript
 // Core domain entities
 interface Patient {
@@ -133,6 +140,7 @@ interface Prescription {
 ```
 
 ### 2. DDS Topics
+
 ```xml
 <dds>
     <topics>
@@ -160,6 +168,7 @@ interface Prescription {
 ## Communication Architecture
 
 ### 1. RTI DDS Configuration
+
 ```xml
 <dds>
     <qos_library name="PatientCareQoS">
@@ -196,6 +205,7 @@ interface Prescription {
 ```
 
 ### 2. Message Flow Patterns
+
 ```plaintext
 1. New Patient Flow:
 Dispenser → [NEW_TICKET] → DDS → [TICKET_CREATED] → Central Screen
@@ -213,6 +223,7 @@ Doctor → [NEW_PRESCRIPTION] → DDS → [PRESCRIPTION] → Pharmacist
 ## Security Architecture
 
 ### 1. Authentication & Authorization
+
 ```typescript
 interface SecurityConfig {
     // Authentication
@@ -230,6 +241,7 @@ interface SecurityConfig {
 ```
 
 ### 2. Data Protection
+
 ```typescript
 interface SecurityMeasures {
     // Encryption
@@ -249,6 +261,7 @@ interface SecurityMeasures {
 ## Deployment Architecture
 
 ### 1. Component Distribution
+
 ```plaintext
 ┌─────────────────────────┐
 │    Frontend Cluster     │
@@ -264,25 +277,27 @@ interface SecurityMeasures {
 ├─────────────────────────┤
 │ - Domain Participants   │
 │ - Publishers            │
-│ - Subscribers          │
+│ - Subscribers           │
 └─────────────────────────┘
            ↕
 ┌─────────────────────────┐
 │    Backend Services     │
 ├─────────────────────────┤
 │ - Authentication        │
-│ - Logging              │
-│ - Monitoring           │
+│ - Logging               │
+│ - Monitoring            │
 └─────────────────────────┘
 ```
 
 ### 2. Scaling Strategy
+
 - Horizontal scaling of frontend components
 - Multiple DDS participants per domain
 - Load balancing across nodes
 - Automatic failover configuration
 
 ### 3. Monitoring Setup
+
 ```typescript
 interface MonitoringConfig {
     metrics: {
