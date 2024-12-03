@@ -9,9 +9,10 @@ import logo from "./logo.png";
 
 interface OrderProps {
   value: number;
+  title: string;
 }
 
-export function Order({ value }: OrderProps) {
+export function Order({ value, title }: OrderProps) {
   return (
     <div className="relative flex flex-col items-center justify-center w-full h-full p-4 space-y-4 text-center">
       <BlurFade duration={0.6} yOffset={10} blur="10px">
@@ -24,7 +25,7 @@ export function Order({ value }: OrderProps) {
       <p className="z-10 whitespace-pre-wrap text-center text-5xl font-medium tracking-tighter text-white">
         <FlipText
           className="text-4xl font-bold -tracking-widest text-[#0f2f76] dark:text-white md:text-7xl md:leading-[5rem]"
-          word="Patients Ahead of You"
+          word={title}
         />
       </p>
       <div className="relative flex h-[500px] w-full flex-col items-center justify-center overflow-hidden rounded-lg bg-background md:shadow-xl">
