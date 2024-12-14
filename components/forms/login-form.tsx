@@ -17,6 +17,7 @@ import { NeonGradientCard } from "../ui/neon-gradient-card";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { api } from "@/lib/services/external-api";
 
 const loginSchema = z.object({
   userId: z
@@ -45,46 +46,18 @@ export function LoginForm() {
 
   async function onSubmit(values: LoginSchema) {
     try {
-      const response = await fetch("https://patient-care-api.vercel.app/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(values),
-      });
-
-      if (!response.ok) {
-        throw new Error("Login failed");
-      }
-
-      const data = await response.json();
-      const { token } = data;
-
-      // Store the token
-      localStorage.setItem("authToken", token);
-
-      // Decode token and redirect based on role
-      const decodedToken: { role: string } = jwtDecode(token);
+      const { token } = await api.auth.login(values.userId, values.password);
+      const decoded = jwtDecode(token);
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(decoded));
       setSubmitStatus(true);
-
-      // Redirect based on role
+      
       setTimeout(() => {
-        switch (decodedToken.role) {
-          case "doctor":
-            router.push("/doctor/dashboard");
-            break;
-          case "pharmacist":
-            router.push("/pharmacist/dashboard");
-            break;
-          default:
-            setError("Invalid role");
-        }
-      }, 1000); // Wait for the success animation
-
-    } catch (error) {
-      setError("Invalid credentials");
+        router.push("/dashboard");
+      }, 1000);
+    } catch (err) {
+      setError("Invalid credentials. Please try again.");
       setSubmitStatus(false);
-      console.error("Login error:", error);
     }
   }
 
