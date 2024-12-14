@@ -34,6 +34,7 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
+import { api } from "@/lib/services/external-api";
 
 const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
@@ -53,33 +54,34 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>;
 
-const medicinesList = [
-  { label: "Paracetamol", value: "paracetamol" },
-  { label: "Ibuprofen", value: "ibuprofen" },
-  { label: "Amoxicillin", value: "amoxicillin" },
-  { label: "Metformin", value: "metformin" },
-  { label: "Aspirin", value: "aspirin" },
-  { label: "Atorvastatin", value: "atorvastatin" },
-  { label: "Amlodipine", value: "amlodipine" },
-  { label: "Omeprazole", value: "omeprazole" },
-  { label: "Simvastatin", value: "simvastatin" },
-  { label: "Losartan", value: "losartan" },
-  { label: "Lisinopril", value: "lisinopril" },
-  { label: "Levothyroxine", value: "levothyroxine" },
-  { label: "Azithromycin", value: "azithromycin" },
-  { label: "Gabapentin", value: "gabapentin" },
-  { label: "Hydrochlorothiazide", value: "hydrochlorothiazide" },
-  { label: "Furosemide", value: "furosemide" },
-  { label: "Metoprolol", value: "metoprolol" },
-  { label: "Pantoprazole", value: "pantoprazole" },
-  { label: "Prednisone", value: "prednisone" },
-  { label: "Clopidogrel", value: "clopidogrel" },
-];
+// const medicinesList = [
+//   { label: "Paracetamol", value: "paracetamol" },
+//   { label: "Ibuprofen", value: "ibuprofen" },
+//   { label: "Amoxicillin", value: "amoxicillin" },
+//   { label: "Metformin", value: "metformin" },
+//   { label: "Aspirin", value: "aspirin" },
+//   { label: "Atorvastatin", value: "atorvastatin" },
+//   { label: "Amlodipine", value: "amlodipine" },
+//   { label: "Omeprazole", value: "omeprazole" },
+//   { label: "Simvastatin", value: "simvastatin" },
+//   { label: "Losartan", value: "losartan" },
+//   { label: "Lisinopril", value: "lisinopril" },
+//   { label: "Levothyroxine", value: "levothyroxine" },
+//   { label: "Azithromycin", value: "azithromycin" },
+//   { label: "Gabapentin", value: "gabapentin" },
+//   { label: "Hydrochlorothiazide", value: "hydrochlorothiazide" },
+//   { label: "Furosemide", value: "furosemide" },
+//   { label: "Metoprolol", value: "metoprolol" },
+//   { label: "Pantoprazole", value: "pantoprazole" },
+//   { label: "Prednisone", value: "prednisone" },
+//   { label: "Clopidogrel", value: "clopidogrel" },
+// ];
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [prescriptionId, setPrescriptionId] = useState("");
   const [medicines, setMedicines] = useState<Array<{ name: string, stock_quantity: string }>>([]);
+  const [error, setError] = useState(null);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -126,54 +128,39 @@ export function PrescriptionForm() {
     name: "medicines",
   });
 
-  const onSubmit = async (data: FormSchema) => {
+  async function onSubmit(values: FormSchema) {
     try {
-      // 1. Submit prescription to database for visualization
-      const response = await fetch('https://patient-care-api.vercel.app/prescription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          doctorId: data.doctorId,
-          patientId: data.patientId,
-          severityImpact: data.severityImpact
-        }),
+      setError(null);
+      // First, save to database via API
+      const { prescriptionId } = await api.prescriptions.create({
+        prescriptionId: values.prescriptionId,
+        patientId: values.patientId,
+        doctorId: values.doctorId,
+        severityImpact: values.severityImpact,
+        medicines: values.medicines,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to submit prescription');
+      // Then publish to DDS for real-time updates
+      if (publishPrescription) {
+        publishPrescription({
+          ...values,
+          prescriptionId,
+          status: 'pending',
+          ticketNumber: null,
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      // 2. Update medicine stock for each medicine
-      await Promise.all(data.medicines.map(medicine => 
-        fetch('https://patient-care-api.vercel.app/medicines/update-stock', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            medicineName: medicine.name,
-            quantityUsed: parseInt(medicine.quantity)
-          }),
-        })
-      ));
-
-      // 3. Publish prescription via WebSocket for real-time updates
-      const prescription: Prescription = {
-        ...data,
-        status: "pending",
-        ticketNumber: null,
-        timestamp: new Date().toISOString(),
-      };
-      await publishPrescription(prescription);
-
       setSubmitStatus(true);
-    } catch (error) {
-      console.error("Error submitting prescription:", error);
-      // You might want to show an error message to the user here
+      setTimeout(() => {
+        form.reset();
+        setSubmitStatus(false);
+      }, 2000);
+    } catch (err) {
+      setError("Failed to create prescription" as any);
+      setSubmitStatus(false);
     }
-  };
+  }
 
   return (
     <NeonGradientCard
