@@ -9,6 +9,8 @@
 5. [Communication Architecture](#communication-architecture)
 6. [Security Architecture](#security-architecture)
 7. [Deployment Architecture](#deployment-architecture)
+8. [API Architecture](#api-architecture)
+9. [DDS Architecture](#dds-architecture)
 
 ## System Overview
 
@@ -311,3 +313,86 @@ interface MonitoringConfig {
         notificationChannels: string[];
     };
 }
+```
+
+## API Architecture
+
+The system uses a centralized API client (`lib/services/external-api.ts`) to handle all external API communications:
+
+```typescript
+interface APIClient {
+  auth: {
+    login(userId: string, password: string): Promise<LoginResponse>;
+  };
+  patients: {
+    verify(patientId: string, prescriptionNumber: string): Promise<VerifyResponse>;
+  };
+  prescriptions: {
+    create(prescription: ApiPrescription): Promise<{ prescriptionId: string }>;
+  };
+  queue: {
+    add(entry: QueueEntry): Promise<{ message: string }>;
+    complete(prescriptionId: string): Promise<{ message: string }>;
+  };
+  metrics: {
+    system(): Promise<SystemMetrics>;
+    prescriptions(): Promise<PrescriptionMetrics>;
+  };
+}
+```
+
+### API Integration Points
+
+1. **Authentication Service**
+   - JWT-based authentication
+   - Token management
+   - Session handling
+
+2. **Patient Service**
+   - Prescription verification
+   - Patient information management
+   - Queue entry generation
+
+3. **Prescription Service**
+   - Prescription creation and management
+   - Status tracking
+   - Medicine information
+
+4. **Queue Service**
+   - Queue management
+   - Wait time calculation
+   - Status updates
+
+5. **Metrics Service**
+   - System performance metrics
+   - Prescription analytics
+   - Queue statistics
+
+## DDS Architecture
+
+The DDS implementation is encapsulated in `lib/services/dds-service.ts`:
+
+```typescript
+class DDSConnector {
+  private static instance: DDSConnector;
+  
+  public static getInstance(): DDSConnector;
+  public publishPrescription(prescription: Prescription): Promise<void>;
+  public startSubscription(callback: (prescription: Prescription) => void): NodeJS.Timeout;
+  public stopSubscription(timer: NodeJS.Timeout): void;
+}
+```
+
+### DDS Topics
+
+1. **PrescriptionTopic**
+   - Type: `Prescription`
+   - QoS: RELIABLE, TRANSIENT_LOCAL
+   - Publishers: Doctor Interface
+   - Subscribers: Pharmacist Interface, Central Screen
+
+2. **TicketTopic**
+   - Type: `Ticket`
+   - QoS: RELIABLE, TRANSIENT_LOCAL
+   - Publishers: Patient Interface
+   - Subscribers: Central Screen, Queue Management
