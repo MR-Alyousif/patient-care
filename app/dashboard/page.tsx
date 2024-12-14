@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChartContainer, ChartTooltip, ChartBar, ChartLine } from "@/components/ui/chart"
+import { TrendingUp, TrendingDown } from "lucide-react"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useTheme } from "next-themes"
 
 interface SystemMetrics {
   queueLength: number
@@ -23,7 +24,6 @@ interface PrescriptionMetrics {
 export default function DashboardPage() {
   const [systemMetrics, setSystemMetrics] = useState<SystemMetrics[]>([])
   const [prescriptionMetrics, setPrescriptionMetrics] = useState<PrescriptionMetrics | null>(null)
-  const { theme } = useTheme()
 
   useEffect(() => {
     // Fetch initial data and set up polling
@@ -52,15 +52,26 @@ export default function DashboardPage() {
   const systemChartConfig = {
     queueLength: {
       label: "Queue Length",
-      color: "#2563eb",
+      color: "hsl(var(--chart-1))",
     },
     serviceTime: {
       label: "Service Time",
-      color: "#16a34a",
+      color: "hsl(var(--chart-2))",
     },
     waitTime: {
       label: "Wait Time",
-      color: "#dc2626",
+      color: "hsl(var(--chart-3))",
+    },
+  }
+
+  const prescriptionChartConfig = {
+    count: {
+      label: "Prescriptions",
+      color: "hsl(var(--chart-1))",
+    },
+    level: {
+      label: "Stock Level",
+      color: "hsl(var(--chart-2))",
     },
   }
 
@@ -79,6 +90,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Current Queue Length</CardTitle>
+                <CardDescription>Real-time monitoring</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
@@ -89,6 +101,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Avg Service Time</CardTitle>
+                <CardDescription>Minutes per patient</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
@@ -99,6 +112,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Avg Wait Time</CardTitle>
+                <CardDescription>Minutes in queue</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
@@ -111,23 +125,70 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>System Metrics Over Time</CardTitle>
+              <CardDescription>24-hour performance tracking</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="h-[400px]">
-                <ChartContainer
-                  config={systemChartConfig}
+              <ChartContainer config={systemChartConfig}>
+                <AreaChart
+                  data={systemMetrics}
+                  margin={{ left: 12, right: 12 }}
+                  height={400}
                 >
-                  <ChartLine
-                    data={systemMetrics}
-                    index="timestamp"
-                    categories={["queueLength", "averageServiceTime", "averageWaitTime"]}
-                    colors={["#2563eb", "#16a34a", "#dc2626"]}
-                    valueFormatter={(value) => `${value}`}
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="timestamp"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => new Date(value).toLocaleTimeString()}
                   />
-                  <ChartTooltip />
-                </ChartContainer>
-              </div>
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
+                  />
+                  <Area
+                    dataKey="queueLength"
+                    type="natural"
+                    fill="var(--color-queue)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-queue)"
+                    stackId="a"
+                  />
+                  <Area
+                    dataKey="averageServiceTime"
+                    type="natural"
+                    fill="var(--color-service)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-service)"
+                    stackId="a"
+                  />
+                  <Area
+                    dataKey="averageWaitTime"
+                    type="natural"
+                    fill="var(--color-wait)"
+                    fillOpacity={0.4}
+                    stroke="var(--color-wait)"
+                    stackId="a"
+                  />
+                </AreaChart>
+              </ChartContainer>
             </CardContent>
+            <CardFooter>
+              <div className="flex w-full items-start gap-2 text-sm">
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 font-medium leading-none">
+                    {systemMetrics[systemMetrics.length - 1]?.queueLength > systemMetrics[0]?.queueLength ? (
+                      <>Trending up <TrendingUp className="h-4 w-4" /></>
+                    ) : (
+                      <>Trending down <TrendingDown className="h-4 w-4" /></>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 leading-none text-muted-foreground">
+                    Last 24 hours
+                  </div>
+                </div>
+              </div>
+            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -135,76 +196,82 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Prescription Statistics</CardTitle>
+                <CardTitle>Prescription Distribution</CardTitle>
+                <CardDescription>Most prescribed medicines</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ChartContainer
-                    config={{
-                      prescriptions: {
-                        label: "Prescriptions",
-                        color: "#2563eb",
-                      },
-                    }}
+                <ChartContainer config={prescriptionChartConfig}>
+                  <BarChart
+                    data={prescriptionMetrics?.medicineStats || []}
+                    margin={{ left: 12, right: 12 }}
+                    height={300}
                   >
-                    <ChartBar
-                      data={prescriptionMetrics?.medicineStats || []}
-                      index="name"
-                      categories={["count"]}
-                      colors={["#2563eb"]}
-                      valueFormatter={(value) => `${value}`}
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      tickFormatter={(value) => value.slice(0, 3)}
                     />
-                    <ChartTooltip />
-                  </ChartContainer>
-                </div>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dashed" />}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="var(--color-prescription)"
+                      radius={4}
+                    />
+                  </BarChart>
+                </ChartContainer>
               </CardContent>
+              <CardFooter className="flex-col items-start gap-2 text-sm">
+                <div className="flex gap-2 font-medium leading-none">
+                  Total Prescriptions: {prescriptionMetrics?.prescriptionCount || 0}
+                </div>
+              </CardFooter>
             </Card>
 
             <Card>
               <CardHeader>
                 <CardTitle>Stock Levels</CardTitle>
+                <CardDescription>Current inventory status</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ChartContainer
-                    config={{
-                      stock: {
-                        label: "Stock Level",
-                        color: "#16a34a",
-                      },
-                    }}
+                <ChartContainer config={prescriptionChartConfig}>
+                  <BarChart
+                    data={prescriptionMetrics?.stockLevels || []}
+                    margin={{ left: 12, right: 12 }}
+                    height={300}
                   >
-                    <ChartBar
-                      data={prescriptionMetrics?.stockLevels || []}
-                      index="medicine"
-                      categories={["level"]}
-                      colors={["#16a34a"]}
-                      valueFormatter={(value) => `${value}`}
+                    <CartesianGrid vertical={false} />
+                    <XAxis
+                      dataKey="medicine"
+                      tickLine={false}
+                      tickMargin={10}
+                      axisLine={false}
+                      tickFormatter={(value) => value.slice(0, 3)}
                     />
-                    <ChartTooltip />
-                  </ChartContainer>
-                </div>
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dashed" />}
+                    />
+                    <Bar
+                      dataKey="level"
+                      fill="var(--color-stock)"
+                      radius={4}
+                    />
+                  </BarChart>
+                </ChartContainer>
               </CardContent>
+              <CardFooter className="flex-col items-start gap-2 text-sm">
+                <div className="flex gap-2 font-medium leading-none">
+                  Total Patients: {prescriptionMetrics?.patientCount || 0}
+                </div>
+              </CardFooter>
             </Card>
           </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm font-medium">Total Prescriptions</p>
-                  <p className="text-2xl font-bold">{prescriptionMetrics?.prescriptionCount || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Total Patients</p>
-                  <p className="text-2xl font-bold">{prescriptionMetrics?.patientCount || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
