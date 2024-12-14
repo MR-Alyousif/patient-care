@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/carousel";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import type { Prescription } from "@/lib/dds-connector";
+import type { Prescription } from "@/lib/types/dds-types";
 import { useSocket } from "@/lib/use-socket";
+import { api } from "@/lib/services/external-api";
 
 export function Queue() {
   const [prescriptions, setPrescriptions] = useState<
@@ -44,6 +45,10 @@ export function Queue() {
       };
 
       try {
+        // Mark as complete in the API
+        await api.queue.complete(prescriptionId);
+
+        // Then update DDS for real-time updates
         await publishPrescription(updatedPrescription);
 
         // Update localStorage for backup
@@ -56,7 +61,7 @@ export function Queue() {
           JSON.stringify(storedPrescriptions)
         );
       } catch (error) {
-        console.error("Error updating prescription status:", error);
+        console.error("Error completing prescription:", error);
       }
     }
   };
