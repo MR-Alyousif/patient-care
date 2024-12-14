@@ -39,12 +39,42 @@ The Patient Care Management System is a comprehensive solution that connects doc
 - Zod (Schema Validation)
 - Framer Motion (Animations)
 
+### Project Structure
+
+```
+/lib/
+  /services/
+    external-api.ts    # External API client for authentication, prescriptions, etc.
+    dds-service.ts     # DDS communication service
+  /types/
+    api-types.ts       # API interfaces and types
+    dds-types.ts       # DDS data types
+/pages/
+  /api/
+    dds.ts            # WebSocket/DDS integration
+/components/
+  /forms/             # Patient, prescription, and login forms
+  /ui/                # Reusable UI components
+  queue.tsx           # Queue management component
+```
+
+### API Integration
+
+The system integrates with an external API (`https://patient-care-api.vercel.app/api`) for:
+- Authentication
+- Prescription management
+- Queue operations
+- System metrics
+
+All API operations are centralized in `lib/services/external-api.ts` for better maintainability.
+
 ### DDS Implementation
 
-- Uses RTI Connext DDS for real-time data distribution
-- Implements reliable messaging with transient local durability
-- Configured topics: PrescriptionTopic, TicketTopic
-- Custom DDS connector with singleton pattern
+The DDS implementation (`lib/services/dds-service.ts`) follows these principles:
+- Singleton pattern for consistent DDS connection
+- Real-time data distribution using RTI Connext DDS
+- WebSocket integration for browser compatibility
+- Transient local durability for reliable messaging
 
 ## Getting Started
 
