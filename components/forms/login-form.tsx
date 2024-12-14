@@ -15,6 +15,8 @@ import {
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { NeonGradientCard } from "../ui/neon-gradient-card";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { jwtDecode } from "jwt-decode";
 
 const loginSchema = z.object({
   userId: z
@@ -30,6 +32,8 @@ type LoginSchema = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   const form = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
@@ -39,9 +43,49 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: LoginSchema) {
-    console.log(values);
-    setSubmitStatus(true);
+  async function onSubmit(values: LoginSchema) {
+    try {
+      const response = await fetch("https://patient-care-api.vercel.app/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        throw new Error("Login failed");
+      }
+
+      const data = await response.json();
+      const { token } = data;
+
+      // Store the token
+      localStorage.setItem("authToken", token);
+
+      // Decode token and redirect based on role
+      const decodedToken: { role: string } = jwtDecode(token);
+      setSubmitStatus(true);
+
+      // Redirect based on role
+      setTimeout(() => {
+        switch (decodedToken.role) {
+          case "doctor":
+            router.push("/doctor/dashboard");
+            break;
+          case "pharmacist":
+            router.push("/pharmacist/dashboard");
+            break;
+          default:
+            setError("Invalid role");
+        }
+      }, 1000); // Wait for the success animation
+
+    } catch (error) {
+      setError("Invalid credentials");
+      setSubmitStatus(false);
+      console.error("Login error:", error);
+    }
   }
 
   return (
@@ -89,21 +133,22 @@ export function LoginForm() {
             )}
           />
 
-          <div className="flex justify-center w-full">
+          <div className="flex flex-col items-center gap-4">
+            {error && <p className="text-red-500">{error}</p>}
             <AnimatedSubscribeButton
               buttonColor="#0f2f76"
               buttonTextColor="#ffffff"
               subscribeStatus={submitStatus}
               initialText={
                 <span className="group inline-flex items-center">
-                    Sign In
+                  Sign In
                   <ChevronRightIcon className="ml-1 size-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </span>
               }
               changeText={
                 <span className="group inline-flex items-center">
                   <CheckIcon className="mr-2 size-4" />
-                    Success
+                  Success
                 </span>
               }
             />
