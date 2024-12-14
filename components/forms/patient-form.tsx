@@ -23,7 +23,8 @@ import { NeonGradientCard } from "../ui/neon-gradient-card";
 import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { Order } from "../order";
 import { useSocket } from "@/lib/use-socket";
-import type { Prescription } from "@/lib/dds-connector";
+import { api } from "@/lib/services/external-api";
+import type { Prescription } from "@/lib/types/dds-types";
 
 const formSchema = z.object({
   patientId: z
@@ -75,55 +76,45 @@ export function PatientForm() {
 
   async function onSubmit(values: FormSchema) {
     try {
-      const prescription = prescriptions[values.prescriptionNumber];
+      setError(null);
+      const { valid, prescription } = await api.patients.verify(
+        values.patientId,
+        values.prescriptionNumber
+      );
 
-      if (!prescription) {
-        setError("Prescription not found");
+      if (!valid || !prescription) {
+        setError("Invalid patient ID or prescription number");
         return;
       }
 
-      if (prescription.status !== "pending") {
-        setError("Prescription has already been processed");
-        return;
+      const ticketNumber = generateTicketNumber(prescription.severityImpact);
+      setTicketNumber(ticketNumber);
+      
+      // Add to queue via API
+      await api.queue.add({
+        queueNumber: ticketNumber,
+        prescriptionId: prescription.prescriptionId,
+        patientId: prescription.patientId,
+        medicines: prescription.medicines.map(m => m.name).join(", "),
+        waitTime: "00:10:00", // Default wait time
+        servedTime: "00:05:00", // Default service time
+        entryTime: new Date().toLocaleTimeString('en-US', { hour12: false }),
+      });
+
+      // Then publish to DDS for real-time updates
+      if (publishPrescription) {
+        publishPrescription({
+          ...prescription,
+          ticketNumber,
+          status: 'processing',
+          timestamp: new Date().toISOString(),
+        });
       }
 
-      if (prescription.patientId !== values.patientId) {
-        setError("Patient ID does not match the prescription");
-        return;
-      }
-
-      const newTicketNumber = generateTicketNumber(prescription.severityImpact);
-
-      const updatedPrescription = {
-        ...prescription,
-        status: "processing",
-        ticketNumber: newTicketNumber,
-        timestamp: new Date().toISOString(),
-      };
-
-      try {
-        await publishPrescription(updatedPrescription);
-
-        // Update localStorage for backup
-        const storedPrescriptions = JSON.parse(
-          localStorage.getItem("prescriptions") || "{}"
-        );
-        storedPrescriptions[values.prescriptionNumber] = updatedPrescription;
-        localStorage.setItem(
-          "prescriptions",
-          JSON.stringify(storedPrescriptions)
-        );
-
-        setTicketNumber(newTicketNumber);
-        setSubmitStatus(true);
-        setError(null);
-      } catch (error) {
-        console.error("Error updating prescription status:", error);
-        setError("An error occurred while processing your prescription");
-      }
-    } catch (error) {
-      console.error("Error processing prescription:", error);
-      setError("An error occurred while processing your prescription");
+      setSubmitStatus(true);
+    } catch (err) {
+      setError("Failed to verify patient information");
+      setSubmitStatus(false);
     }
   }
 
