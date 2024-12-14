@@ -10,10 +10,12 @@ export interface Medicine {
 export interface Prescription {
   prescriptionId: string;
   patientId: string;
+  doctorId: string;
   medicines: Medicine[];
   status: string;
   ticketNumber: number | null;
   timestamp: string;
+  severityImpact: number;
 }
 
 export class DDSConnector {

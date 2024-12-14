@@ -39,6 +39,7 @@ const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
   patientId: z.string().min(1, "Patient ID is required."),
   prescriptionId: z.string(),
+  severityImpact: z.number().min(0).max(9),
   medicines: z
     .array(
       z.object({
@@ -77,12 +78,8 @@ const medicinesList = [
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
-  const [, setPrescriptionId] = useState("");
-
-  const { publishPrescription } = useSocket((prescription) => {
-    // Handle any updates to this prescription if needed
-    console.log("Prescription update:", prescription);
-  });
+  const [prescriptionId, setPrescriptionId] = useState("");
+  const [medicines, setMedicines] = useState<Array<{ name: string, stock_quantity: string }>>([]);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -90,15 +87,11 @@ export function PrescriptionForm() {
       doctorId: "defaultDoctorId",
       patientId: "",
       prescriptionId: "",
+      severityImpact: 1,
       medicines: [{ name: "", quantity: "1", dosage: "" }],
     },
   });
-
-  const { fields, append } = useFieldArray({
-    control: form.control,
-    name: "medicines",
-  });
-
+  
   useEffect(() => {
     // Generate a random prescription ID: Letter followed by 6 digits
     const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
@@ -108,30 +101,77 @@ export function PrescriptionForm() {
     const newPrescriptionId = `${letter}${numbers}`;
     setPrescriptionId(newPrescriptionId);
     form.setValue("prescriptionId", newPrescriptionId);
+
+    // Fetch medicines from API
+    const fetchMedicines = async () => {
+      try {
+        const response = await fetch('https://patient-care-api.vercel.app/medicines/check-stock');
+        const data = await response.json();
+        setMedicines(data);
+      } catch (error) {
+        console.error('Error fetching medicines:', error);
+      }
+    };
+
+    fetchMedicines();
   }, [form]);
+
+  const { publishPrescription } = useSocket((prescription) => {
+    console.log("Prescription update:", prescription);
+  });
+
+
+  const { fields, append } = useFieldArray({
+    control: form.control,
+    name: "medicines",
+  });
 
   const onSubmit = async (data: FormSchema) => {
     try {
+      // 1. Submit prescription to database for visualization
+      const response = await fetch('https://patient-care-api.vercel.app/prescription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          doctorId: data.doctorId,
+          patientId: data.patientId,
+          severityImpact: data.severityImpact
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit prescription');
+      }
+
+      // 2. Update medicine stock for each medicine
+      await Promise.all(data.medicines.map(medicine => 
+        fetch('https://patient-care-api.vercel.app/medicines/update-stock', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            medicineName: medicine.name,
+            quantityUsed: parseInt(medicine.quantity)
+          }),
+        })
+      ));
+
+      // 3. Publish prescription via WebSocket for real-time updates
       const prescription: Prescription = {
         ...data,
         status: "pending",
         ticketNumber: null,
         timestamp: new Date().toISOString(),
       };
-
-      // Publish via WebSocket
       await publishPrescription(prescription);
-
-      // Also store in localStorage for backup/demo purposes
-      const prescriptions = JSON.parse(
-        localStorage.getItem("prescriptions") || "{}"
-      );
-      prescriptions[data.prescriptionId] = prescription;
-      localStorage.setItem("prescriptions", JSON.stringify(prescriptions));
 
       setSubmitStatus(true);
     } catch (error) {
       console.error("Error submitting prescription:", error);
+      // You might want to show an error message to the user here
     }
   };
 
@@ -164,7 +204,25 @@ export function PrescriptionForm() {
               </FormItem>
             )}
           />
-
+          <FormField
+            control={form.control}
+            name="severityImpact"
+            render={({ field: { onChange, ...field } }) => (
+              <FormItem>
+                <FormLabel>Severity Impact (0-9)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min={0} 
+                    max={9} 
+                    onChange={(e) => onChange(parseInt(e.target.value))}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           {fields.map((field, index) => (
             <div key={field.id} className="space-y-4">
               <FormField
@@ -195,18 +253,18 @@ export function PrescriptionForm() {
                           <CommandList>
                             <CommandEmpty>No medicine found.</CommandEmpty>
                             <CommandGroup>
-                              {medicinesList.map((medicine) => (
+                              {medicines.map((medicine) => (
                                 <CommandItem
-                                  key={medicine.value}
+                                  key={medicine.name}
                                   onSelect={() =>
                                     form.setValue(
                                       `medicines.${index}.name`,
-                                      medicine.label
+                                      medicine.name
                                     )
                                   }
                                 >
-                                  {medicine.label}
-                                  {medicine.label === field.value && (
+                                  {medicine.name} (Stock: {medicine.stock_quantity})
+                                  {medicine.name === field.value && (
                                     <CheckIcon className="ml-auto h-4 w-4" />
                                   )}
                                 </CommandItem>
