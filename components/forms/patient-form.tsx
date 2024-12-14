@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   InputOTP,
   InputOTPGroup,
@@ -45,6 +45,7 @@ export function PatientForm() {
   const [prescriptions, setPrescriptions] = useState<
     Record<string, Prescription>
   >({});
+  const [lastSequentialNumbers, setLastSequentialNumbers] = useState<{ [key: number]: number }>({}); // Track last number for each severity
 
   const { publishPrescription } = useSocket((prescription) => {
     setPrescriptions((prev) => ({
@@ -53,18 +54,6 @@ export function PatientForm() {
     }));
   });
 
-  useEffect(() => {
-    // Subscribe to prescription updates
-    const { publishPrescription } = useSocket((prescription) => {
-      setPrescriptions((prev) => ({
-        ...prev,
-        [prescription.prescriptionId]: prescription,
-      }));
-    });
-
-    // No need for explicit cleanup as it's handled in useSocket's useEffect
-  }, []);
-
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,6 +61,17 @@ export function PatientForm() {
       prescriptionNumber: "",
     },
   });
+
+  const generateTicketNumber = (severityImpact: number): number => {
+    // Get the last sequential number for this severity level or start at 0
+    const lastNumber = lastSequentialNumbers[severityImpact] || 0;
+    // Increment the sequential number
+    const newSequential = (lastNumber + 1) % 100; // Keep it 2 digits
+    // Update the last number for this severity
+    setLastSequentialNumbers((prev) => ({ ...prev, [severityImpact]: newSequential }));
+    // Combine severity (first digit) with sequential number (last 2 digits)
+    return severityImpact * 100 + newSequential;
+  };
 
   async function onSubmit(values: FormSchema) {
     try {
@@ -92,7 +92,7 @@ export function PatientForm() {
         return;
       }
 
-      const newTicketNumber = Math.floor(Math.random() * 900) + 100; // 3-digit number
+      const newTicketNumber = generateTicketNumber(prescription.severityImpact);
 
       const updatedPrescription = {
         ...prescription,
