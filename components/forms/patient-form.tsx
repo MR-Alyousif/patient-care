@@ -43,10 +43,10 @@ export function PatientForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [prescriptions, setPrescriptions] = useState<
-    Record<string, Prescription>
-  >({});
-  const [lastSequentialNumbers, setLastSequentialNumbers] = useState<{ [key: number]: number }>({}); // Track last number for each severity
+  const [, setPrescriptions] = useState<Record<string, Prescription>>({});
+  const [lastSequentialNumbers, setLastSequentialNumbers] = useState<{
+    [key: number]: number;
+  }>({}); // Track last number for each severity
 
   const { publishPrescription } = useSocket((prescription) => {
     setPrescriptions((prev) => ({
@@ -69,7 +69,10 @@ export function PatientForm() {
     // Increment the sequential number
     const newSequential = (lastNumber + 1) % 100; // Keep it 2 digits
     // Update the last number for this severity
-    setLastSequentialNumbers((prev) => ({ ...prev, [severityImpact]: newSequential }));
+    setLastSequentialNumbers((prev) => ({
+      ...prev,
+      [severityImpact]: newSequential,
+    }));
     // Combine severity (first digit) with sequential number (last 2 digits)
     return severityImpact * 100 + newSequential;
   };
@@ -89,16 +92,16 @@ export function PatientForm() {
 
       const ticketNumber = generateTicketNumber(prescription.severityImpact);
       setTicketNumber(ticketNumber);
-      
+
       // Add to queue via API
       await api.queue.add({
         queueNumber: ticketNumber,
         prescriptionId: prescription.prescriptionId,
         patientId: prescription.patientId,
-        medicines: prescription.medicines.map(m => m.name).join(", "),
+        medicines: prescription.medicines.map((m) => m.name).join(", "),
         waitTime: "00:10:00", // Default wait time
         servedTime: "00:05:00", // Default service time
-        entryTime: new Date().toLocaleTimeString('en-US', { hour12: false }),
+        entryTime: new Date().toLocaleTimeString("en-US", { hour12: false }),
       });
 
       // Then publish to DDS for real-time updates
@@ -106,13 +109,14 @@ export function PatientForm() {
         publishPrescription({
           ...prescription,
           ticketNumber,
-          status: 'processing',
+          status: "processing",
           timestamp: new Date().toISOString(),
         });
       }
 
       setSubmitStatus(true);
     } catch (err) {
+      console.error("Error verifying patient information:", err);
       setError("Failed to verify patient information");
       setSubmitStatus(false);
     }
