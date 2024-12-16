@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { Prescription } from "@/lib/dds-connector";
+// import type { Prescription } from "@/lib/types/dds-types";
 import { useSocket } from "@/lib/use-socket";
 import {
   Command,
@@ -79,9 +79,11 @@ type FormSchema = z.infer<typeof formSchema>;
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
-  const [prescriptionId, setPrescriptionId] = useState("");
-  const [medicines, setMedicines] = useState<Array<{ name: string, stock_quantity: string }>>([]);
-  const [error, setError] = useState(null);
+  const [, setPrescriptionId] = useState("");
+  const [medicines, setMedicines] = useState<
+    Array<{ name: string; stock_quantity: string }>
+  >([]);
+  const [, setError] = useState<string | null>(null);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -93,7 +95,7 @@ export function PrescriptionForm() {
       medicines: [{ name: "", quantity: "1", dosage: "" }],
     },
   });
-  
+
   useEffect(() => {
     // Generate a random prescription ID: Letter followed by 6 digits
     const letter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
@@ -107,11 +109,13 @@ export function PrescriptionForm() {
     // Fetch medicines from API
     const fetchMedicines = async () => {
       try {
-        const response = await fetch('https://patient-care-api.vercel.app/medicines/check-stock');
+        const response = await fetch(
+          "https://patient-care-api.vercel.app/medicines/check-stock"
+        );
         const data = await response.json();
         setMedicines(data);
       } catch (error) {
-        console.error('Error fetching medicines:', error);
+        console.error("Error fetching medicines:", error);
       }
     };
 
@@ -121,7 +125,6 @@ export function PrescriptionForm() {
   const { publishPrescription } = useSocket((prescription) => {
     console.log("Prescription update:", prescription);
   });
-
 
   const { fields, append } = useFieldArray({
     control: form.control,
@@ -145,7 +148,7 @@ export function PrescriptionForm() {
         publishPrescription({
           ...values,
           prescriptionId,
-          status: 'pending',
+          status: "pending",
           ticketNumber: null,
           timestamp: new Date().toISOString(),
         });
@@ -157,7 +160,8 @@ export function PrescriptionForm() {
         setSubmitStatus(false);
       }, 2000);
     } catch (err) {
-      setError("Failed to create prescription" as any);
+      console.error("Error creating prescription:", err);
+      setError("Failed to create prescription");
       setSubmitStatus(false);
     }
   }
@@ -198,10 +202,10 @@ export function PrescriptionForm() {
               <FormItem>
                 <FormLabel>Severity Impact (0-9)</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
-                    min={0} 
-                    max={9} 
+                  <Input
+                    type="number"
+                    min={0}
+                    max={9}
                     onChange={(e) => onChange(parseInt(e.target.value))}
                     {...field}
                   />
@@ -250,7 +254,8 @@ export function PrescriptionForm() {
                                     )
                                   }
                                 >
-                                  {medicine.name} (Stock: {medicine.stock_quantity})
+                                  {medicine.name} (Stock:{" "}
+                                  {medicine.stock_quantity})
                                   {medicine.name === field.value && (
                                     <CheckIcon className="ml-auto h-4 w-4" />
                                   )}
