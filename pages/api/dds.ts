@@ -8,14 +8,22 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     console.log("*First use, starting socket.io");
 
     const io = new SocketIOServer((res.socket as any).server);
+    (res.socket as any).server.io = io;
+    
+    // Increase max listeners limit to prevent warning
+    io.setMaxListeners(20);
+    
     const ddsConnector = DDSConnector.getInstance();
 
     io.on("connection", (socket) => {
       console.log("Client connected");
+      let subscriptionTimer: any = null;
 
       // Subscribe to DDS updates and forward to connected clients
-      const timer = ddsConnector.startSubscription((prescription) => {
-        socket.emit("prescription-update", prescription);
+      subscriptionTimer = ddsConnector.startSubscription((prescription) => {
+        if (socket.connected) {
+          socket.emit("prescription-update", prescription);
+        }
       });
 
       // Handle new prescriptions from clients
@@ -29,14 +37,18 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         }
       });
 
-      // Clean up on disconnect
+      // Cleanup on disconnect
       socket.on("disconnect", () => {
         console.log("Client disconnected");
-        ddsConnector.stopSubscription(timer);
+        if (subscriptionTimer) {
+          clearInterval(subscriptionTimer);
+          subscriptionTimer = null;
+        }
+        socket.removeAllListeners();
       });
     });
 
-    (res.socket as any).server.io = io;
+    res.end();
   }
 
   res.end();
