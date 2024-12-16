@@ -76,6 +76,61 @@ The DDS implementation (`lib/services/dds-service.ts`) follows these principles:
 - WebSocket integration for browser compatibility
 - Transient local durability for reliable messaging
 
+## Network Configuration
+
+### Prerequisites
+- All machines must be on the same local network subnet
+- UDP multicast must be enabled and properly configured
+- Firewall rules must allow UDP multicast traffic
+
+### Verifying Network Configuration
+
+1. **Check Network Configuration**
+   ```bash
+   # Run the network configuration check
+   node scripts/check-network.js
+   ```
+   Ensure all machines are on the same subnet (e.g., 192.168.3.x/24).
+
+2. **Test Multicast Communication**
+   ```bash
+   # Run the multicast test
+   node scripts/test-multicast.js
+   ```
+   Each machine should see messages from all other machines in the network.
+
+3. **Configure Windows Firewall** (if needed)
+   ```powershell
+   # Run as Administrator
+   New-NetFirewallRule -DisplayName "Allow UDP Multicast" -Direction Inbound -Protocol UDP -LocalPort 54321 -Action Allow
+   New-NetFirewallRule -DisplayName "Allow UDP Multicast" -Direction Outbound -Protocol UDP -LocalPort 54321 -Action Allow
+   ```
+
+4. **Configure RTI DDS Environment**
+   ```cmd
+   # Set DDS discovery peers
+   set NDDS_DISCOVERY_PEERS=239.255.0.1
+   ```
+
+   Ensure the `USER_RTI_ROUTING_SERVICE.xml` configuration file is present in your project root.
+
+### Troubleshooting Network Issues
+
+1. **Verify Network Route**
+   ```cmd
+   route print
+   ```
+   Look for a route that includes your network interface's IP address.
+
+2. **Test Multicast Connectivity**
+   ```cmd
+   ping -n 4 239.255.0.1
+   ```
+
+3. **Check Firewall**
+   - Ensure UDP ports 7400-7500 are open for DDS discovery
+   - Verify multicast traffic is allowed on your network
+
 ## Getting Started
 
 1. **Prerequisites**
@@ -96,18 +151,25 @@ The DDS implementation (`lib/services/dds-service.ts`) follows these principles:
    # Follow the setup guide in 'docs/dds-setup.md'
    ```
 
-3. **Running the Application**
+## Running the Application
 
+1. **Start the Development Server**
    ```bash
-   # Start the development server
    npm run dev
-
-   # The application will be available at:
-   # - Doctor's Dashboard: http://localhost:3000/doctor
-   # - Patient Form: http://localhost:3000/patient
-   # - Pharmacist Queue: http://localhost:3000/pharmacist
-   # - Central Screen: http://localhost:3000/central-screen
    ```
+
+2. **Access Different Components**
+   - Doctor's Dashboard: `http://[machine-ip]:3000/doctor`
+   - Patient Form: `http://[machine-ip]:3000/patient`
+   - Pharmacist Queue: `http://[machine-ip]:3000/pharmacist`
+   - Central Screen: `http://[machine-ip]:3000/central-screen`
+
+   Replace `[machine-ip]` with the actual IP address of each machine.
+
+3. **Verify DDS Communication**
+   - Monitor the console for DDS discovery messages
+   - Test prescription creation and updates across machines
+   - Verify real-time updates on the central screen
 
 ## System Architecture
 
