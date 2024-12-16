@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+const BASE_URL = "https://patient-care-api.vercel.app";
+
 interface SystemMetrics {
   queueLength: number
   averageServiceTime: number
@@ -30,8 +32,8 @@ export default function DashboardPage() {
     const fetchData = async () => {
       try {
         const [systemRes, prescriptionRes] = await Promise.all([
-          fetch("/api/metrics/system"),
-          fetch("/api/metrics/prescriptions")
+          fetch(`${BASE_URL}/api/metrics/system`),
+          fetch(`${BASE_URL}/api/metrics/prescriptions`)
         ])
         
         const systemData = await systemRes.json()
