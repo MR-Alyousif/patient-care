@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<dds>
+    <routing_service name="PatientCareRouter">
+        <domain_route name="PatientCareDomainRoute">
+            <participant_1>
+                <domain_id>0</domain_id>
+                <participant_qos>
+                    <transport_builtin>
+                        <mask>UDPV4</mask>
+                    </transport_builtin>
+                    <property>
+                        <value>
+                            <element>
+                                <name>dds.transport.UDPv4.builtin.parent.allow_interfaces</name>
+                                <value>*</value>
+                            </element>
+                            <element>
+                                <name>dds.transport.UDPv4.builtin.parent.multicast_ttl</name>
+                                <value>3</value>
+                            </element>
+                        </value>
+                    </property>
+                </participant_qos>
+            </participant_1>
+        </domain_route>
+    </routing_service>
+</dds>
