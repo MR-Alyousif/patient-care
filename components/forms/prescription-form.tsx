@@ -110,7 +110,7 @@ export function PrescriptionForm() {
     const fetchMedicines = async () => {
       try {
         const response = await fetch(
-          "https://patient-care-api.vercel.app/medicines/check-stock"
+          "https://patient-care-api.vercel.app/api/medicines/check-stock"
         );
         const data = await response.json();
         setMedicines(data);
