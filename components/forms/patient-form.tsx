@@ -24,7 +24,6 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { Order } from "../order";
 import { useSocket } from "@/lib/use-socket";
 import { api } from "@/lib/services/external-api";
-import type { Prescription } from "@/lib/types/dds-types";
 
 const formSchema = z.object({
   patientId: z
@@ -43,16 +42,10 @@ export function PatientForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [, setPrescriptions] = useState<Record<string, Prescription>>({});
-  const [lastSequentialNumbers, setLastSequentialNumbers] = useState<{
-    [key: number]: number;
-  }>({}); // Track last number for each severity
 
-  const { publishPrescription } = useSocket((prescription) => {
-    setPrescriptions((prev) => ({
-      ...prev,
-      [prescription.prescriptionId]: prescription,
-    }));
+  const { publishPrescription } = useSocket((prescription: any) => {
+    // Handle prescription updates if needed
+    console.log('Prescription updated:', prescription);
   });
 
   const form = useForm<FormSchema>({
@@ -65,14 +58,9 @@ export function PatientForm() {
 
   const generateTicketNumber = (severityImpact: number): number => {
     // Get the last sequential number for this severity level or start at 0
-    const lastNumber = lastSequentialNumbers[severityImpact] || 0;
+    const lastNumber = 0;
     // Increment the sequential number
     const newSequential = (lastNumber + 1) % 100; // Keep it 2 digits
-    // Update the last number for this severity
-    setLastSequentialNumbers((prev) => ({
-      ...prev,
-      [severityImpact]: newSequential,
-    }));
     // Combine severity (first digit) with sequential number (last 2 digits)
     return severityImpact * 100 + newSequential;
   };
@@ -80,45 +68,35 @@ export function PatientForm() {
   async function onSubmit(values: FormSchema) {
     try {
       setError(null);
-      const { valid, prescription } = await api.patients.verify(
-        values.patientId,
-        values.prescriptionNumber
-      );
-
-      if (!valid || !prescription) {
-        setError("Invalid patient ID or prescription number");
-        return;
-      }
-
-      const ticketNumber = generateTicketNumber(prescription.severityImpact);
+      const ticketNumber = generateTicketNumber(1); // Default severity impact of 1
       setTicketNumber(ticketNumber);
 
       // Add to queue via API
-      await api.queue.add({
-        queueNumber: ticketNumber,
-        prescriptionId: prescription.prescriptionId,
-        patientId: prescription.patientId,
-        medicines: prescription.medicines.map((m) => m.name).join(", "),
-        waitTime: "00:10:00", // Default wait time
-        servedTime: "00:05:00", // Default service time
-        entryTime: new Date().toLocaleTimeString("en-US", { hour12: false }),
+      // await api.queue.add({
+      //   queueNumber: ticketNumber,
+      //   prescriptionId: values.prescriptionNumber,
+      //   patientId: values.patientId,
+      //   medicines: "", // No medicines info available without verification
+      //   waitTime: "00:10:00", // Default wait time
+      //   servedTime: "00:05:00", // Default service time
+      //   entryTime: new Date().toLocaleTimeString("en-US", { hour12: false })
+      // });
+
+      publishPrescription({
+        prescriptionId: values.prescriptionNumber,
+        patientId: values.patientId,
+        doctorId: "SYSTEM", // Default system ID since we're not verifying
+        medicines: [], // Empty medicines array since we're not verifying
+        status: "processing",
+        ticketNumber: ticketNumber,
+        timestamp: new Date().toISOString(),
+        severityImpact: 1
       });
 
-      // Then publish to DDS for real-time updates
-      if (publishPrescription) {
-        publishPrescription({
-          ...prescription,
-          ticketNumber,
-          status: "processing",
-          timestamp: new Date().toISOString(),
-        });
-      }
-
       setSubmitStatus(true);
-    } catch (err) {
-      console.error("Error verifying patient information:", err);
-      setError("Failed to verify patient information");
-      setSubmitStatus(false);
+    } catch (error: any) {
+      setError("An error occurred while processing your request");
+      console.error(error);
     }
   }
 

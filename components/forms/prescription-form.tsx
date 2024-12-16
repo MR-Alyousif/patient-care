@@ -34,7 +34,6 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
-import { api } from "@/lib/services/external-api";
 
 const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
@@ -102,9 +101,10 @@ export function PrescriptionForm() {
     const numbers = Math.floor(Math.random() * 1000000)
       .toString()
       .padStart(6, "0");
-    const newPrescriptionId = `${letter}${numbers}`;
-    setPrescriptionId(newPrescriptionId);
-    form.setValue("prescriptionId", newPrescriptionId);
+    const prescriptionId = `${letter}${numbers}`;
+    setPrescriptionId(prescriptionId);
+    form.setValue("prescriptionId", prescriptionId);
+    console.log("New prescription ID:", prescriptionId);
 
     // Fetch medicines from API
     const fetchMedicines = async () => {
@@ -134,20 +134,12 @@ export function PrescriptionForm() {
   async function onSubmit(values: FormSchema) {
     try {
       setError(null);
-      // First, save to database via API
-      const { prescriptionId } = await api.prescriptions.create({
-        prescriptionId: values.prescriptionId,
-        patientId: values.patientId,
-        doctorId: values.doctorId,
-        severityImpact: values.severityImpact,
-        medicines: values.medicines,
-      });
-
-      // Then publish to DDS for real-time updates
+      
+      // Publish to DDS for real-time updates
       if (publishPrescription) {
         publishPrescription({
           ...values,
-          prescriptionId,
+          prescriptionId: values.prescriptionId,
           status: "pending",
           ticketNumber: null,
           timestamp: new Date().toISOString(),
