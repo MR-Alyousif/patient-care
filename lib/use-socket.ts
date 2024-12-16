@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import type { Prescription } from "./dds-connector";
+import type { Prescription } from "@/lib/types/dds-types";
 
 type UseSocketReturn = {
   publishPrescription: (prescription: Prescription) => Promise<void>;

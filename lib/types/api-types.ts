@@ -1,4 +1,4 @@
-import type { Medicine } from '../dds-connector';
+import type { Medicine } from './dds-types';
 
 export interface LoginResponse {
   message: string;
