@@ -48,12 +48,17 @@ export function LoginForm() {
     try {
       const { token } = await api.auth.login(values.userId, values.password);
       const decoded = jwtDecode(token);
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(decoded));
+      
+      // Set the token as a cookie instead of localStorage
+      document.cookie = `authToken=${token}; path=/; max-age=86400; samesite=strict`;
+      
       setSubmitStatus(true);
       
       setTimeout(() => {
-        router.push("/dashboard");
+        // Redirect based on user role
+        const { role } = decoded as { role: string };
+        const redirectPath = role === "doctor" ? "/doctor" : "/pharmacist";
+        router.push(redirectPath);
       }, 1000);
     } catch (err) {
       setError("Invalid credentials. Please try again.");
