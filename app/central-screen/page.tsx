@@ -2,7 +2,7 @@
 
 import { Order } from "@/components/order";
 import { useState } from "react";
-import type { Prescription } from "@/lib/dds-connector";
+import type { Prescription } from "@/lib/types/dds-types";
 import { useSocket } from "@/lib/use-socket";
 
 export default function CentralScreen() {
