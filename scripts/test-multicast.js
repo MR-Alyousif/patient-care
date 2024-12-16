@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const dgram = require('dgram');
 const MULTICAST_ADDR = '239.255.0.1';
 const PORT = 54321;
@@ -22,6 +23,7 @@ receiver.on('message', (msg, rinfo) => {
 
 // Send a message every 2 seconds
 setInterval(() => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const message = `Hello from ${require('os').hostname()} at ${new Date().toISOString()}`;
     sender.send(message, PORT, MULTICAST_ADDR, (err) => {
         if (err) {
