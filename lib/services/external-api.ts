@@ -27,6 +27,18 @@ async function fetchApi<T>(endpoint: string, options: { method?: string; data?: 
   }
 }
 
+interface SystemMetrics {
+  queueLength: number;
+  averageServiceTime: number;
+  averageWaitTime: number;
+  timestamp: string;
+}
+
+interface PrescriptionMetrics {
+  totalPrescriptions: number;
+  uniquePatients: number;
+}
+
 export const api = {
   auth: {
     login: (userId: string, password: string) => 
@@ -109,7 +121,7 @@ export const api = {
       }),
   },
   metrics: {
-    system: () => fetchApi('/metrics/system'),
-    prescriptions: () => fetchApi('/metrics/prescriptions'),
+    system: () => fetchApi<SystemMetrics[]>('/metrics/system'),
+    prescription: () => fetchApi<PrescriptionMetrics>('/metrics/prescription'),
   },
 };
