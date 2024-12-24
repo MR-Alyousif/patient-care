@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface AnimatedSubscribeButtonProps {
@@ -21,6 +21,16 @@ export const AnimatedSubscribeButton: React.FC<
   initialText,
 }) => {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(subscribeStatus);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isSubscribed) {
+      timer = setTimeout(() => {
+        setIsSubscribed(false);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [isSubscribed]);
 
   return (
     <AnimatePresence mode="wait">
