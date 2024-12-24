@@ -1,5 +1,7 @@
+"use client";
+
 import Welcome from "@/components/welcome";
-import { PrescriptionForm } from "@/components/forms/prescription-form";
+import PrescriptionForm from "@/components/forms/prescription-form";
 
 export default function DoctorPage() {
   return (
