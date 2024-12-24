@@ -24,7 +24,7 @@ export function Queue() {
       try {
         const response = await api.queue.getQueue();
         const entries = response.data.reduce<Record<string, QueueEntry>>((acc, entry) => {
-          acc[entry.prescriptionId] = entry;
+          acc[entry.prescription_id] = entry;
           return acc;
         }, {});
         setQueueEntries(entries);
@@ -43,11 +43,11 @@ export function Queue() {
           case 'update':
             return {
               ...prev,
-              [update.data.prescriptionId]: update.data,
+              [update.data.prescription_id]: update.data,
             };
           case 'delete': {
             const newState = { ...prev };
-            delete newState[update.data.prescriptionId];
+            delete newState[update.data.prescription_id];
             return newState;
           }
           default:
@@ -82,15 +82,15 @@ export function Queue() {
         <ScrollArea className="h-[300px]">
           <div className="space-y-4">
             {activeEntries.map((entry) => (
-              <Card key={entry.prescriptionId}>
+              <Card key={entry.prescription_id}>
                 <CardHeader>
-                  <CardTitle>Prescription #{entry.prescriptionId}</CardTitle>
+                  <CardTitle>Prescription #{entry.prescription_id}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div>Queue Number: {entry.queueNumber}</div>
-                    <div>Patient ID: {entry.patientId}</div>
-                    <div>Wait Time: {entry.waitTime}</div>
+                    <div>Patient ID: {entry.patient_id}</div>
+                    <div>Wait Time: {entry.wait_time}</div>
                     <Separator />
                     <div>Medicines:</div>
                     <ul className="list-disc pl-6">
@@ -104,7 +104,7 @@ export function Queue() {
                 </CardContent>
                 <CardFooter>
                   <Button
-                    onClick={() => handleComplete(entry.prescriptionId)}
+                    onClick={() => handleComplete(entry.prescription_id)}
                     className="w-full"
                   >
                     Mark as Complete
