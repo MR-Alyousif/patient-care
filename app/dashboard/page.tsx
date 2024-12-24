@@ -153,7 +153,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {systemMetrics[systemMetrics.length - 1]?.queueLength ?? 'N/A'}
+                  {systemMetrics[0]?.queueLength ?? 'N/A'}
                 </p>
               </CardContent>
             </Card>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {systemMetrics[systemMetrics.length - 1]?.averageServiceTime ?? 'N/A'}m
+                  {systemMetrics[0]?.averageServiceTime ?? 'N/A'}m
                 </p>
               </CardContent>
             </Card>
@@ -175,7 +175,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {systemMetrics[systemMetrics.length - 1]?.averageWaitTime ?? 'N/A'}m
+                  {systemMetrics[0]?.averageWaitTime ?? 'N/A'}m
                 </p>
               </CardContent>
             </Card>
