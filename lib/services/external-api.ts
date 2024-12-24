@@ -130,12 +130,12 @@ export const api = {
       serviceTime?: string;
       severityImpact?: number;
     }) =>
-      fetchApi<{ message: string; id: string }>('/prescription', {
+      fetchApi<{ message: string; id: string }>('/prescriptions', {
         method: 'POST',
         data,
       }),
     notify: (patientId: string, prescriptionNumber: string) =>
-      fetchApi<{ message: string }>('/prescription/notify', {
+      fetchApi<{ message: string }>('/prescriptions/notify', {
         method: 'POST',
         data: { patientId, prescriptionNumber },
       }),

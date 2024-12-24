@@ -37,7 +37,7 @@ import { ChevronRightIcon } from "lucide-react";
 import { api } from "@/lib/services/external-api";
 
 const formSchema = z.object({
-  doctorId: z.string().default("defaultDoctorId"),
+  doctorId: z.string().default("1"),
   patientId: z.string().min(1, "Patient ID is required."),
   prescriptionId: z.string(),
   severityImpact: z.number().min(0).max(9),
@@ -65,7 +65,7 @@ export function PrescriptionForm() {
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      doctorId: "defaultDoctorId",
+      doctorId: "1",
       patientId: "",
       prescriptionId: "",
       severityImpact: 1,
