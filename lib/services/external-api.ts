@@ -1,4 +1,4 @@
-import type { LoginResponse, ApiPrescription, QueueEntry } from "../types/api-types";
+import type { LoginResponse, ApiPrescription, QueueEntry, Medicine } from "../types/api-types";
 import axios from "axios";
 import { socketService } from './socket-service';
 
@@ -47,88 +47,79 @@ interface SystemMetricsResponse {
 
 interface PrescriptionResponse {
   message: string;
-  id: string;
-  prescriptionNumber: string;
+  data: ApiPrescription;
 }
 
-// interface Medicine {
-//   name: string;
-//   quantity: string;
-// }
+interface StockMedicine extends Medicine {
+  stock_quantity: number;
+  threshold_quantity: number;
+}
 
 export const api = {
   auth: {
-    login: (userId: string, password: string) =>
-      fetchApi<LoginResponse>("/auth/login", {
+    login(userId: string, password: string) {
+      return fetchApi<LoginResponse>("/auth/login", {
         method: "POST",
-        data: { id: userId, password },
-      }),
+        data: { userId, password },
+      });
+    },
   },
   medicines: {
-    updateStock: (medicineName: string, neededQuantity: number) =>
-      fetchApi<{ message: string; updatedStockQuantity: number }>(
-        "/medicines/update-stock",
-        {
-          method: "POST",
-          data: { medicineName, neededQuantity },
-        }
-      ),
-    checkStock: () =>
-      fetchApi<
-        Array<{
-          name: string;
-          stock_quantity: number;
-          threshold_quantity: number;
-        }>
-      >("/medicines/check-stock"),
-    getUsage: () =>
-      fetchApi<{ data: Array<{ name: string; used_quantity: number }> }>(
-        "/medicines/used"
-      ),
-    getStock: () =>
-      fetchApi<{ data: Array<{ name: string; stock_quantity: number }> }>(
-        "/medicines/stock"
-      ),
+    updateStock(medicineName: string, neededQuantity: number) {
+      return fetchApi<{ message: string }>("/medicines/update-stock", {
+        method: "POST",
+        data: { medicineName, neededQuantity },
+      });
+    },
+    checkStock() {
+      return fetchApi<{ data: StockMedicine[] }>("/medicines/check-stock", {
+        method: "GET",
+      });
+    },
+    getUsage() {
+      return fetchApi<{ data: StockMedicine[] }>("/medicines/used");
+    },
+    getStock() {
+      return fetchApi<{ data: StockMedicine[] }>("/medicines/stock");
+    },
   },
   pharmacists: {
-    async getQueue() {
+    getQueue() {
       return fetchApi<{ data: QueueEntry[] }>("/pharmacists/queue");
     },
-    async addToQueue(entry: Omit<QueueEntry, 'id'>) {
+    addToQueue(entry: Omit<QueueEntry, 'id'>) {
       return fetchApi<{ data: QueueEntry }>("/pharmacists/queue", {
         method: "POST",
         data: entry,
       });
     },
-    async complete(prescriptionId: string) {
+    complete(prescriptionId: string) {
       return fetchApi<{ data: QueueEntry }>(`/pharmacists/queue/${prescriptionId}/complete`, {
-        method: "POST",
+        method: "PUT",
       });
     },
     onQueueUpdate(callback: Parameters<typeof socketService.onQueueUpdate>[0]) {
-      socketService.connect();
       return socketService.onQueueUpdate(callback);
-    }
+    },
   },
   queue: {
-    async getQueue() {
+    getQueue() {
       return fetchApi<{ data: QueueEntry[] }>("/queue");
     },
-    async addToQueue(entry: Omit<QueueEntry, 'id'>) {
+    addToQueue(entry: Omit<QueueEntry, 'id'>) {
       return fetchApi<{ data: QueueEntry }>("/queue", {
         method: "POST",
         data: entry,
       });
     },
-    async complete(prescriptionId: string) {
+    complete(prescriptionId: string) {
       return fetchApi<{ data: QueueEntry }>(`/queue/${prescriptionId}/complete`, {
-        method: "POST",
+        method: "PUT",
       });
     },
     onQueueUpdate(callback: Parameters<typeof socketService.onQueueUpdate>[0]) {
-      socketService.connect();
       return socketService.onQueueUpdate(callback);
-    }
+    },
   },
   prescriptions: {
     create(data: {
@@ -139,13 +130,16 @@ export const api = {
     }) {
       return fetchApi<PrescriptionResponse>("/prescriptions", {
         method: "POST",
-        data,
+        data: {
+          doctor_id: data.doctorId,
+          patient_id: data.patientId,
+          service_time: data.serviceTime,
+          severity_impact: data.severityImpact,
+        },
       });
     },
     get(prescriptionId: string) {
-      return fetchApi<{ data: ApiPrescription }>(
-        `/prescriptions/${prescriptionId}`
-      );
+      return fetchApi<{ data: ApiPrescription }>(`/prescriptions/${prescriptionId}`);
     },
     notify(patientId: string, prescriptionNumber: string) {
       return fetchApi<{ message: string }>("/prescriptions/notify", {
@@ -155,8 +149,11 @@ export const api = {
     },
   },
   metrics: {
-    system: () => fetchApi<SystemMetricsResponse[]>("/metrics/system"),
-    prescription: () =>
-      fetchApi<PrescriptionResponse[]>("/metrics/prescription"),
+    system() {
+      return fetchApi<{ data: SystemMetricsResponse[] }>("/metrics/system");
+    },
+    prescription() {
+      return fetchApi<{ data: ApiPrescription[] }>("/metrics/prescription");
+    },
   },
 };
