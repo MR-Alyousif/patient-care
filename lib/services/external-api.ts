@@ -1,5 +1,6 @@
-import type { LoginResponse, ApiPrescription } from "../types/api-types";
+import type { LoginResponse, ApiPrescription, QueueEntry } from "../types/api-types";
 import axios from "axios";
+import { socketService } from './socket-service';
 
 const API_BASE_URL = "https://patient-care-api.vercel.app/api";
 
@@ -50,21 +51,10 @@ interface PrescriptionResponse {
   prescriptionNumber: string;
 }
 
-interface Medicine {
-  name: string;
-  quantity: string;
-}
-
-interface QueueEntry {
-  queueNumber: string;
-  prescriptionId: string;
-  patientId: string;
-  medicines: Medicine[];
-  waitTime: string;
-  servedTime: string;
-  entryTime: string;
-  severityImpact?: number;
-}
+// interface Medicine {
+//   name: string;
+//   quantity: string;
+// }
 
 export const api = {
   auth: {
@@ -101,36 +91,44 @@ export const api = {
       ),
   },
   pharmacists: {
-    getQueue: () =>
-      fetchApi<QueueEntry[]>("/pharmacists/queue"),
-    addToQueue: (entry: QueueEntry) =>
-      fetchApi<{ message: string; data: QueueEntry }>(
-        "/pharmacists/queue/add",
-        {
-          method: "POST",
-          data: entry as unknown,
-        }
-      ),
-    complete: (prescriptionId: string) =>
-      fetchApi<{ message: string }>("/pharmacists/complete", {
-        method: "POST",
-        data: { prescriptionId },
-      }),
-  },
-  queue: {
-    getQueue: () =>
-      fetchApi<{ data: QueueEntry[] }>("/queue"),
-    
-    addToQueue: (entry: QueueEntry) =>
-      fetchApi<{ data: QueueEntry }>("/queue", {
+    async getQueue() {
+      return fetchApi<{ data: QueueEntry[] }>("/pharmacists/queue");
+    },
+    async addToQueue(entry: Omit<QueueEntry, 'id'>) {
+      return fetchApi<{ data: QueueEntry }>("/pharmacists/queue", {
         method: "POST",
         data: entry,
-      }),
-    
-    complete: (prescriptionId: string) =>
-      fetchApi<{ data: QueueEntry }>(`/queue/${prescriptionId}/complete`, {
+      });
+    },
+    async complete(prescriptionId: string) {
+      return fetchApi<{ data: QueueEntry }>(`/pharmacists/queue/${prescriptionId}/complete`, {
         method: "POST",
-      }),
+      });
+    },
+    onQueueUpdate(callback: Parameters<typeof socketService.onQueueUpdate>[0]) {
+      socketService.connect();
+      return socketService.onQueueUpdate(callback);
+    }
+  },
+  queue: {
+    async getQueue() {
+      return fetchApi<{ data: QueueEntry[] }>("/queue");
+    },
+    async addToQueue(entry: Omit<QueueEntry, 'id'>) {
+      return fetchApi<{ data: QueueEntry }>("/queue", {
+        method: "POST",
+        data: entry,
+      });
+    },
+    async complete(prescriptionId: string) {
+      return fetchApi<{ data: QueueEntry }>(`/queue/${prescriptionId}/complete`, {
+        method: "POST",
+      });
+    },
+    onQueueUpdate(callback: Parameters<typeof socketService.onQueueUpdate>[0]) {
+      socketService.connect();
+      return socketService.onQueueUpdate(callback);
+    }
   },
   prescriptions: {
     create(data: {
