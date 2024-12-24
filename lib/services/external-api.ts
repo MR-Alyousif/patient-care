@@ -34,9 +34,29 @@ interface SystemMetrics {
   timestamp: string;
 }
 
+interface SystemMetricsResponse {
+  timestamp: string;
+  queue_length: string;
+  average_service_time: string;
+  average_wait_time: string;
+  id: number;
+}
+
 interface PrescriptionMetrics {
   totalPrescriptions: number;
   uniquePatients: number;
+}
+
+interface PrescriptionResponse {
+  id: number;
+  doctor_id: string;
+  patient_id: string;
+  created_at: string;
+  service_time: {
+    minutes: number;
+    seconds: number;
+  };
+  severity_impact: number;
 }
 
 export const api = {
@@ -121,7 +141,7 @@ export const api = {
       }),
   },
   metrics: {
-    system: () => fetchApi<SystemMetrics[]>('/metrics/system'),
-    prescription: () => fetchApi<PrescriptionMetrics>('/metrics/prescription'),
+    system: () => fetchApi<SystemMetricsResponse[]>('/metrics/system'),
+    prescription: () => fetchApi<PrescriptionResponse[]>('/metrics/prescription'),
   },
 };

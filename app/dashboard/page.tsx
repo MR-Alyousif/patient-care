@@ -35,10 +35,23 @@ export default function DashboardPage() {
         
         // Fetch system metrics
         const systemData = await api.metrics.system();
-        setSystemMetrics(systemData);
+        
+        // Convert the response to our SystemMetrics format
+        const formattedMetrics: SystemMetrics[] = systemData.map(item => ({
+          queueLength: parseInt(item.queue_length),
+          averageServiceTime: parseFloat(item.average_service_time),
+          averageWaitTime: parseFloat(item.average_wait_time),
+          timestamp: item.timestamp
+        }));
+
+        setSystemMetrics(formattedMetrics);
 
         // Fetch prescription metrics
         const prescriptionData = await api.metrics.prescription();
+        
+        // Calculate unique patients and total prescriptions
+        const uniquePatients = new Set(prescriptionData.map(p => p.patient_id)).size;
+        const totalPrescriptions = prescriptionData.length;
 
         // Fetch current stock levels
         const stockData = await api.medicines.getStock();
@@ -55,9 +68,9 @@ export default function DashboardPage() {
         }));
         
         setPrescriptionMetrics({
-          prescriptionCount: prescriptionData.totalPrescriptions,
+          prescriptionCount: totalPrescriptions,
           medicineStats,
-          patientCount: prescriptionData.uniquePatients,
+          patientCount: uniquePatients,
           stockLevels,
         });
 
