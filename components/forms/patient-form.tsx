@@ -24,6 +24,7 @@ import { CheckIcon, ChevronRightIcon } from "lucide-react";
 import { Order } from "../order";
 import { useSocket } from "@/lib/use-socket";
 import { api } from "@/lib/services/external-api";
+import { useTicketDispenser } from "@/lib/use-ticket-dispenser";
 
 const formSchema = z.object({
   patientId: z
@@ -42,6 +43,7 @@ export function PatientForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
   const [ticketNumber, setTicketNumber] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const ticketDispenser = useTicketDispenser();
 
   const { publishPrescription } = useSocket((prescription: any) => {
     // Handle prescription updates if needed
@@ -56,31 +58,17 @@ export function PatientForm() {
     },
   });
 
-  const generateTicketNumber = (severityImpact: number): number => {
-    // Get the last sequential number for this severity level or start at 0
-    const lastNumber = 0;
-    // Increment the sequential number
-    const newSequential = (lastNumber + 1) % 100; // Keep it 2 digits
-    // Combine severity (first digit) with sequential number (last 2 digits)
-    return severityImpact * 100 + newSequential;
-  };
-
   async function onSubmit(values: FormSchema) {
     try {
       setError(null);
-      const ticketNumber = generateTicketNumber(1); // Default severity impact of 1
-      setTicketNumber(ticketNumber);
-
-      // Add to queue via API
-      // await api.queue.add({
-      //   queueNumber: ticketNumber,
-      //   prescriptionId: values.prescriptionNumber,
-      //   patientId: values.patientId,
-      //   medicines: "", // No medicines info available without verification
-      //   waitTime: "00:10:00", // Default wait time
-      //   servedTime: "00:05:00", // Default service time
-      //   entryTime: new Date().toLocaleTimeString("en-US", { hour12: false })
-      // });
+      
+      // Get severity from prescription
+      const prescriptionResponse = await api.prescriptions.get(values.prescriptionNumber);
+      const severityImpact = prescriptionResponse.data.severityImpact || 1;
+      
+      // Get ticket from dispenser
+      const ticket = await ticketDispenser.issueTicket(severityImpact);
+      setTicketNumber(ticket.number);
 
       publishPrescription({
         prescriptionId: values.prescriptionNumber,
@@ -88,9 +76,9 @@ export function PatientForm() {
         doctorId: "SYSTEM", // Default system ID since we're not verifying
         medicines: [], // Empty medicines array since we're not verifying
         status: "processing",
-        ticketNumber: ticketNumber,
+        ticketNumber: ticket.number,
         timestamp: new Date().toISOString(),
-        severityImpact: 1
+        severityImpact
       });
 
       setSubmitStatus(true);
