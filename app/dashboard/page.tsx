@@ -91,6 +91,12 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const calculateAverage = (metrics: number[]) => {
+    if (!metrics.length) return 'N/A';
+    const sum = metrics.reduce((acc, val) => acc + val, 0);
+    return (sum / metrics.length).toFixed(2);
+  };
+
   const systemChartConfig = {
     queueLength: {
       label: "Queue Length",
@@ -164,7 +170,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {systemMetrics[0]?.averageServiceTime ?? 'N/A'}m
+                  {calculateAverage(systemMetrics.map(m => m.averageServiceTime))}m
                 </p>
               </CardContent>
             </Card>
@@ -175,7 +181,7 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">
-                  {systemMetrics[0]?.averageWaitTime ?? 'N/A'}m
+                  {calculateAverage(systemMetrics.map(m => m.averageWaitTime))}m
                 </p>
               </CardContent>
             </Card>
