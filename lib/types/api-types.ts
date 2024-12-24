@@ -1,4 +1,8 @@
-import type { Medicine } from './dds-types';
+export interface Medicine {
+  name: string;
+  quantity: string;
+  dosage: string;
+}
 
 export interface LoginResponse {
   message: string;
@@ -14,11 +18,14 @@ export interface ApiPrescription {
 }
 
 export interface QueueEntry {
-  queueNumber: number;
+  id: string;
+  queueNumber: string;
   prescriptionId: string;
   patientId: string;
-  medicines: string;
+  medicines: Medicine[];
   waitTime: string;
   servedTime: string;
   entryTime: string;
+  status: 'processing' | 'ready' | 'completed';
+  severityImpact: number;
 }
