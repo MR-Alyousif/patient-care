@@ -39,8 +39,8 @@ export default function DashboardPage() {
         // Convert the response to our SystemMetrics format
         const formattedMetrics: SystemMetrics[] = systemData.map(item => ({
           queueLength: parseInt(item.queue_length),
-          averageServiceTime: parseFloat(item.average_service_time),
-          averageWaitTime: parseFloat(item.average_wait_time),
+          averageServiceTime: parseFloat((parseFloat(item.average_service_time) / 60).toFixed(2)),
+          averageWaitTime: parseFloat((parseFloat(item.average_wait_time) / 60).toFixed(2)),
           timestamp: item.timestamp
         }));
 
