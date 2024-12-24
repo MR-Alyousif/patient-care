@@ -20,13 +20,13 @@ import { jwtDecode } from "jwt-decode";
 import { api } from "@/lib/services/external-api";
 
 const loginSchema = z.object({
-  userId: z
-    .string()
-    .length(10, { message: "ID must be exactly 10 digits." })
-    .regex(/^\d+$/, { message: "ID must contain only digits." }),
-  password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters long." }),
+  userId: z.string(),
+    // .string()
+    // .length(10, { message: "ID must be exactly 10 digits." })
+    // .regex(/^\d+$/, { message: "ID must contain only digits." }),
+  password: z.string(),
+    // .string()
+    // .min(8, { message: "Password must be at least 8 characters long." }),
 });
 
 type LoginSchema = z.infer<typeof loginSchema>;
@@ -60,6 +60,7 @@ export function LoginForm() {
         const redirectPath = role === "doctor" ? "/doctor" : "/pharmacist";
         router.push(redirectPath);
       }, 1000);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Invalid credentials. Please try again.");
       setSubmitStatus(false);
