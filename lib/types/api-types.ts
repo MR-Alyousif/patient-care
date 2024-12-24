@@ -20,12 +20,12 @@ export interface ApiPrescription {
 export interface QueueEntry {
   id: string;
   queueNumber: string;
-  prescriptionId: string;
-  patientId: string;
+  prescription_id: string;
+  patient_id: string;
   medicines: Medicine[];
-  waitTime: string;
-  servedTime: string;
-  entryTime: string;
+  wait_time: string;
+  served_time: string;
+  entry_time: string;
   status: 'processing' | 'ready' | 'completed';
-  severityImpact: number;
+  severity_impact: number;
 }
