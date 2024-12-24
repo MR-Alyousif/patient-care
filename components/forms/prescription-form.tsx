@@ -5,8 +5,7 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-// import type { Prescription } from "@/lib/types/dds-types";
-import { useSocket } from "@/lib/use-socket";
+import type { QueueEntry } from "@/lib/types/api-types";
 import {
   Command,
   CommandGroup,
@@ -15,6 +14,13 @@ import {
   CommandList,
   CommandEmpty,
 } from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -35,6 +41,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
 import { api } from "@/lib/services/external-api";
+import { useSocket } from "@/lib/use-socket";
 
 const formSchema = z.object({
   doctorId: z.string().default("1"),
@@ -61,6 +68,13 @@ export default function PrescriptionForm() {
   const [medicines, setMedicines] = useState<
     Array<{ name: string; stock_quantity: string }>
   >([]);
+  const [showTicket, setShowTicket] = useState(false);
+  const [ticketNumber, setTicketNumber] = useState("");
+  // const socket = useSocket();
+
+  const { publishQueueUpdate } = useSocket((update) => {
+    console.log("Queue update:", update);
+  });
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -99,56 +113,50 @@ export default function PrescriptionForm() {
     fetchMedicines();
   }, [form]);
 
-  const { publishPrescription } = useSocket((prescription) => {
-    console.log("Prescription update:", prescription);
-  });
-
   const { fields, append } = useFieldArray({
     control: form.control,
     name: "medicines",
   });
 
-  async function onSubmit(values: FormSchema) {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       setError(null);
       
-      // Create prescription
+      // Create prescription first
       const prescriptionResponse = await api.prescriptions.create({
-        doctorId: values.doctorId,
-        patientId: values.patientId,
-        severityImpact: values.severityImpact,
+        doctorId: data.doctorId,
+        patientId: data.patientId,
+        severityImpact: data.severityImpact
       });
-
-      // Store prescription number
-      setPrescriptionNumber(prescriptionResponse.prescriptionNumber);
-
-      // Update medicine stock for each medicine
-      for (const medicine of values.medicines) {
-        await api.medicines.updateStock(
-          medicine.name,
-          parseInt(medicine.quantity)
-        );
-      }
-
-      // Add to pharmacist queue
-      publishPrescription({
-        prescriptionId: prescriptionResponse.prescriptionNumber,
-        patientId: values.patientId,
-        doctorId: values.doctorId,
-        medicines: values.medicines,
-        status: "processing",
-        ticketNumber: null,
-        timestamp: new Date().toISOString(),
-        severityImpact: values.severityImpact
-      });
-
-      setSubmitStatus(true);
+      
+      // Generate ticket number using severity impact
+      const ticketNumber = `${data.severityImpact}${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+      
+      // Add to queue
+      const queueEntry: Omit<QueueEntry, 'id'> = {
+        queueNumber: ticketNumber,
+        prescription_id: prescriptionResponse.id,
+        patient_id: data.patientId,
+        medicines: data.medicines,
+        wait_time: '0',
+        served_time: '',
+        entry_time: new Date().toISOString(),
+        severity_impact: data.severityImpact,
+        status: 'processing'
+      };
+      
+      await api.queue.addToQueue(queueEntry);
+      
+      setTicketNumber(ticketNumber);
+      setShowTicket(true);
+      
+      form.reset();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
       setError(errorMessage);
-      setSubmitStatus(false);
+      console.error('Error creating prescription:', error);
     }
-  }
+  };
 
   return (
     <NeonGradientCard
@@ -330,6 +338,21 @@ export default function PrescriptionForm() {
           )}
         </form>
       </Form>
+      <Dialog open={showTicket} onOpenChange={setShowTicket}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Prescription Submitted</DialogTitle>
+            <DialogDescription>
+              Your prescription has been added to the queue. Your ticket number is:
+              <div className="text-3xl font-bold text-center mt-4 mb-4">
+                {ticketNumber}
+              </div>
+              Please wait for your number to be called on the central screen.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setShowTicket(false)}>Close</Button>
+        </DialogContent>
+      </Dialog>
     </NeonGradientCard>
   );
 }
