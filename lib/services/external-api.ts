@@ -1,37 +1,39 @@
-import type { LoginResponse, ApiPrescription, QueueEntry } from '../types/api-types';
-import axios from 'axios';
+import type { LoginResponse, ApiPrescription } from "../types/api-types";
+import axios from "axios";
 
-const API_BASE_URL = 'https://patient-care-api.vercel.app/api';
+const API_BASE_URL = "https://patient-care-api.vercel.app/api";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-async function fetchApi<T>(endpoint: string, options: { method?: string; data?: any; headers?: any } = {}): Promise<T> {
+interface RequestOptions {
+  method?: string;
+  data?: unknown;
+  headers?: Record<string, string>;
+}
+
+async function fetchApi<T>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<T> {
   try {
     const response = await axiosInstance({
       url: endpoint,
-      method: options.method || 'GET',
+      method: options.method || "GET",
       data: options.data,
       headers: options.headers,
     });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || 'API request failed');
+      throw new Error(error.response.data.error || "API request failed");
     }
     throw error;
   }
-}
-
-interface SystemMetrics {
-  queueLength: number;
-  averageServiceTime: number;
-  averageWaitTime: number;
-  timestamp: string;
 }
 
 interface SystemMetricsResponse {
@@ -42,106 +44,121 @@ interface SystemMetricsResponse {
   id: number;
 }
 
-interface PrescriptionMetrics {
-  totalPrescriptions: number;
-  uniquePatients: number;
+interface PrescriptionResponse {
+  message: string;
+  id: string;
+  prescriptionNumber: string;
 }
 
-interface PrescriptionResponse {
-  id: number;
-  doctor_id: string;
-  patient_id: string;
-  created_at: string;
-  service_time: {
-    minutes: number;
-    seconds: number;
-  };
-  severity_impact: number;
+interface Medicine {
+  name: string;
+  quantity: string;
+}
+
+interface QueueEntry {
+  queueNumber: string;
+  prescriptionId: string;
+  patientId: string;
+  medicines: Medicine[];
+  waitTime: string;
+  servedTime: string;
+  entryTime: string;
+  severityImpact?: number;
 }
 
 export const api = {
   auth: {
-    login: (userId: string, password: string) => 
-      fetchApi<LoginResponse>('/auth/login', {
-        method: 'POST',
+    login: (userId: string, password: string) =>
+      fetchApi<LoginResponse>("/auth/login", {
+        method: "POST",
         data: { id: userId, password },
       }),
   },
   medicines: {
     updateStock: (medicineName: string, neededQuantity: number) =>
-      fetchApi<{ message: string; updatedStockQuantity: number }>('/medicines/update-stock', {
-        method: 'POST',
-        data: { medicineName, neededQuantity },
-      }),
+      fetchApi<{ message: string; updatedStockQuantity: number }>(
+        "/medicines/update-stock",
+        {
+          method: "POST",
+          data: { medicineName, neededQuantity },
+        }
+      ),
     checkStock: () =>
-      fetchApi<Array<{ name: string; stock_quantity: number; threshold_quantity: number }>>('/medicines/check-stock'),
+      fetchApi<
+        Array<{
+          name: string;
+          stock_quantity: number;
+          threshold_quantity: number;
+        }>
+      >("/medicines/check-stock"),
     getUsage: () =>
-      fetchApi<{ data: Array<{ name: string; used_quantity: number }> }>('/medicines/used'),
+      fetchApi<{ data: Array<{ name: string; used_quantity: number }> }>(
+        "/medicines/used"
+      ),
     getStock: () =>
-      fetchApi<{ data: Array<{ name: string; stock_quantity: number }> }>('/medicines/stock'),
+      fetchApi<{ data: Array<{ name: string; stock_quantity: number }> }>(
+        "/medicines/stock"
+      ),
   },
   pharmacists: {
     getQueue: () =>
-      fetchApi<Array<{
-        queueNumber: string;
-        prescription_id: string;
-        patient_id: string;
-        status: string;
-        medicines: any[];
-        wait_time: string;
-        served_time: string;
-        entry_time: string;
-      }>>('/pharmacists/queue'),
-    addToQueue: (entry: {
-      queueNumber: string;
-      prescriptionId: string;
-      patientId: string;
-      medicines: any[];
-      waitTime: string;
-      servedTime: string;
-      entryTime: string;
-    }) =>
-      fetchApi<{
-        message: string;
-        data: {
-          queueNumber: string;
-          prescription_id: string;
-          patient_id: string;
-          status: string;
-          medicines: any[];
-          wait_time: string;
-          served_time: string;
-          entry_time: string;
-        };
-      }>('/pharmacists/queue/add', {
-        method: 'POST',
-        data: entry,
-      }),
+      fetchApi<QueueEntry[]>("/pharmacists/queue"),
+    addToQueue: (entry: QueueEntry) =>
+      fetchApi<{ message: string; data: QueueEntry }>(
+        "/pharmacists/queue/add",
+        {
+          method: "POST",
+          data: entry as unknown,
+        }
+      ),
     complete: (prescriptionId: string) =>
-      fetchApi<{ message: string }>('/pharmacists/complete', {
-        method: 'POST',
+      fetchApi<{ message: string }>("/pharmacists/complete", {
+        method: "POST",
         data: { prescriptionId },
       }),
   },
+  queue: {
+    getQueue: () =>
+      fetchApi<{ data: QueueEntry[] }>("/queue"),
+    
+    addToQueue: (entry: QueueEntry) =>
+      fetchApi<{ data: QueueEntry }>("/queue", {
+        method: "POST",
+        data: entry,
+      }),
+    
+    complete: (prescriptionId: string) =>
+      fetchApi<{ data: QueueEntry }>(`/queue/${prescriptionId}/complete`, {
+        method: "POST",
+      }),
+  },
   prescriptions: {
-    create: (data: {
+    create(data: {
       doctorId: string;
       patientId: string;
       serviceTime?: string;
       severityImpact?: number;
-    }) =>
-      fetchApi<{ message: string; id: string }>('/prescriptions', {
-        method: 'POST',
+    }) {
+      return fetchApi<PrescriptionResponse>("/prescriptions", {
+        method: "POST",
         data,
-      }),
-    notify: (patientId: string, prescriptionNumber: string) =>
-      fetchApi<{ message: string }>('/prescriptions/notify', {
-        method: 'POST',
+      });
+    },
+    get(prescriptionId: string) {
+      return fetchApi<{ data: ApiPrescription }>(
+        `/prescriptions/${prescriptionId}`
+      );
+    },
+    notify(patientId: string, prescriptionNumber: string) {
+      return fetchApi<{ message: string }>("/prescriptions/notify", {
+        method: "POST",
         data: { patientId, prescriptionNumber },
-      }),
+      });
+    },
   },
   metrics: {
-    system: () => fetchApi<SystemMetricsResponse[]>('/metrics/system'),
-    prescription: () => fetchApi<PrescriptionResponse[]>('/metrics/prescription'),
+    system: () => fetchApi<SystemMetricsResponse[]>("/metrics/system"),
+    prescription: () =>
+      fetchApi<PrescriptionResponse[]>("/metrics/prescription"),
   },
 };
