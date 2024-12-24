@@ -89,9 +89,7 @@
     </domain_participant>
   </domain_participants>
   <topics>
-    <topic name="TicketTopic" register_type_ref="Ticket" />
-    <topic name="PriorityTopic" register_type_ref="Ticket" />
-    <topic name="PrescriptionTopic" register_type_ref="Prescription">
+    <topic name="TicketTopic" register_type_ref="Ticket">
       <qos>
         <reliability>
           <kind>RELIABLE</kind>
@@ -103,6 +101,76 @@
           <kind>KEEP_LAST</kind>
           <depth>10</depth>
         </history>
+        <resource_limits>
+          <max_samples>100</max_samples>
+          <max_instances>50</max_instances>
+          <max_samples_per_instance>2</max_samples_per_instance>
+        </resource_limits>
+        <liveliness>
+          <kind>AUTOMATIC</kind>
+          <lease_duration>
+            <sec>10</sec>
+            <nanosec>0</nanosec>
+          </lease_duration>
+        </liveliness>
+      </qos>
+    </topic>
+    <topic name="PriorityTopic" register_type_ref="Ticket">
+      <qos>
+        <reliability>
+          <kind>RELIABLE</kind>
+        </reliability>
+        <durability>
+          <kind>TRANSIENT_LOCAL</kind>
+        </durability>
+        <history>
+          <kind>KEEP_LAST</kind>
+          <depth>10</depth>
+        </history>
+        <resource_limits>
+          <max_samples>100</max_samples>
+          <max_instances>50</max_instances>
+          <max_samples_per_instance>2</max_samples_per_instance>
+        </resource_limits>
+        <liveliness>
+          <kind>AUTOMATIC</kind>
+          <lease_duration>
+            <sec>10</sec>
+            <nanosec>0</nanosec>
+          </lease_duration>
+        </liveliness>
+      </qos>
+    </topic>
+    <topic name="PrescriptionTopic" register_type_ref="Prescription">
+      <qos>
+        <reliability>
+          <kind>RELIABLE</kind>
+        </reliability>
+        <durability>
+          <kind>TRANSIENT_LOCAL</kind>
+        </durability>
+        <history>
+          <kind>KEEP_LAST</kind>
+          <depth>20</depth>
+        </history>
+        <resource_limits>
+          <max_samples>200</max_samples>
+          <max_instances>100</max_instances>
+          <max_samples_per_instance>2</max_samples_per_instance>
+        </resource_limits>
+        <liveliness>
+          <kind>AUTOMATIC</kind>
+          <lease_duration>
+            <sec>10</sec>
+            <nanosec>0</nanosec>
+          </lease_duration>
+        </liveliness>
+        <deadline>
+          <period>
+            <sec>60</sec>
+            <nanosec>0</nanosec>
+          </period>
+        </deadline>
       </qos>
     </topic>
   </topics>
