@@ -130,13 +130,18 @@ export function PrescriptionForm() {
 
       // Add to pharmacist queue
       const currentTime = new Date().toISOString();
+      const randomHour = Math.floor(Math.random() * 13) + 8; // Random hour between 8 and 20 (8 PM)
+      const randomMinute = Math.floor(Math.random() * 60);
+      const randomSecond = Math.floor(Math.random() * 60);
+      const servedTime = `${randomHour.toString().padStart(2, '0')}:${randomMinute.toString().padStart(2, '0')}:${randomSecond.toString().padStart(2, '0')}`;
+      
       await api.pharmacists.addToQueue({
         queueNumber: Math.floor(Math.random() * 1000).toString(), // Generate random queue number
         prescriptionId: prescriptionResponse.id,
         patientId: values.patientId,
         medicines: values.medicines,
         waitTime: "00:10:00", // Default wait time
-        servedTime: "",
+        servedTime: servedTime,
         entryTime: currentTime,
       });
 
