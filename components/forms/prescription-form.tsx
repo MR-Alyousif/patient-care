@@ -54,13 +54,13 @@ const formSchema = z.object({
 
 type FormSchema = z.infer<typeof formSchema>;
 
-export function PrescriptionForm() {
+export default function PrescriptionForm() {
+  const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState(false);
-  const [, setPrescriptionId] = useState("");
+  const [prescriptionNumber, setPrescriptionNumber] = useState<string | null>(null);
   const [medicines, setMedicines] = useState<
     Array<{ name: string; stock_quantity: string }>
   >([]);
-  const [, setError] = useState<string | null>(null);
 
   const form = useForm<FormSchema>({
     resolver: zodResolver(formSchema),
@@ -80,7 +80,6 @@ export function PrescriptionForm() {
       .toString()
       .padStart(6, "0");
     const prescriptionId = `${letter}${numbers}`;
-    setPrescriptionId(prescriptionId);
     form.setValue("prescriptionId", prescriptionId);
     console.log("New prescription ID:", prescriptionId);
 
@@ -88,7 +87,7 @@ export function PrescriptionForm() {
     const fetchMedicines = async () => {
       try {
         const response = await api.medicines.getStock();
-        setMedicines(response.data.map(m => ({ 
+        setMedicines(response.data.map((m) => ({ 
           name: m.name, 
           stock_quantity: m.stock_quantity.toString() 
         })));
@@ -120,6 +119,9 @@ export function PrescriptionForm() {
         severityImpact: values.severityImpact,
       });
 
+      // Store prescription number
+      setPrescriptionNumber(prescriptionResponse.prescriptionNumber);
+
       // Update medicine stock for each medicine
       for (const medicine of values.medicines) {
         await api.medicines.updateStock(
@@ -129,41 +131,21 @@ export function PrescriptionForm() {
       }
 
       // Add to pharmacist queue
-      const currentTime = new Date().toISOString();
-      const randomHour = Math.floor(Math.random() * 13) + 8; // Random hour between 8 and 20 (8 PM)
-      const randomMinute = Math.floor(Math.random() * 60);
-      const randomSecond = Math.floor(Math.random() * 60);
-      const servedTime = `${randomHour.toString().padStart(2, '0')}:${randomMinute.toString().padStart(2, '0')}:${randomSecond.toString().padStart(2, '0')}`;
-      
-      await api.pharmacists.addToQueue({
-        queueNumber: Math.floor(Math.random() * 1000).toString(), // Generate random queue number
-        prescriptionId: prescriptionResponse.id,
+      publishPrescription({
+        prescriptionId: prescriptionResponse.prescriptionNumber,
         patientId: values.patientId,
+        doctorId: values.doctorId,
         medicines: values.medicines,
-        waitTime: "00:10:00", // Default wait time
-        servedTime: servedTime,
-        entryTime: currentTime,
+        status: "processing",
+        ticketNumber: null,
+        timestamp: new Date().toISOString(),
+        severityImpact: values.severityImpact
       });
 
-      // Publish to DDS for real-time updates
-      if (publishPrescription) {
-        publishPrescription({
-          ...values,
-          prescriptionId: prescriptionResponse.id,
-          status: "pending",
-          ticketNumber: null,
-          timestamp: currentTime,
-        });
-      }
-
       setSubmitStatus(true);
-      setTimeout(() => {
-        form.reset();
-        setSubmitStatus(false);
-      }, 2000);
-    } catch (err) {
-      console.error("Error creating prescription:", err);
-      setError("Failed to create prescription");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      setError(errorMessage);
       setSubmitStatus(false);
     }
   }
@@ -330,6 +312,22 @@ export function PrescriptionForm() {
               }
             />
           </div>
+          {submitStatus && prescriptionNumber && (
+            <div className="mt-4 p-4 bg-green-100 border border-green-400 rounded">
+              <h3 className="text-lg font-semibold text-green-800">Prescription Created Successfully!</h3>
+              <p className="text-green-700">
+                Prescription Number: <span className="font-mono font-bold">{prescriptionNumber}</span>
+              </p>
+              <p className="text-sm text-green-600 mt-2">
+                Please provide this number to the patient. They will need it to get their medicine.
+              </p>
+            </div>
+          )}
+          {error && (
+            <div className="mt-4 p-4 bg-red-100 border border-red-400 rounded">
+              <p className="text-red-700">{error}</p>
+            </div>
+          )}
         </form>
       </Form>
     </NeonGradientCard>
