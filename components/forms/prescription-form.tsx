@@ -34,6 +34,7 @@ import { Input } from "../ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
 import { AnimatedSubscribeButton } from "../ui/animated-subscribe-button";
 import { ChevronRightIcon } from "lucide-react";
+import { api } from "@/lib/services/external-api";
 
 const formSchema = z.object({
   doctorId: z.string().default("defaultDoctorId"),
@@ -52,29 +53,6 @@ const formSchema = z.object({
 });
 
 type FormSchema = z.infer<typeof formSchema>;
-
-// const medicinesList = [
-//   { label: "Paracetamol", value: "paracetamol" },
-//   { label: "Ibuprofen", value: "ibuprofen" },
-//   { label: "Amoxicillin", value: "amoxicillin" },
-//   { label: "Metformin", value: "metformin" },
-//   { label: "Aspirin", value: "aspirin" },
-//   { label: "Atorvastatin", value: "atorvastatin" },
-//   { label: "Amlodipine", value: "amlodipine" },
-//   { label: "Omeprazole", value: "omeprazole" },
-//   { label: "Simvastatin", value: "simvastatin" },
-//   { label: "Losartan", value: "losartan" },
-//   { label: "Lisinopril", value: "lisinopril" },
-//   { label: "Levothyroxine", value: "levothyroxine" },
-//   { label: "Azithromycin", value: "azithromycin" },
-//   { label: "Gabapentin", value: "gabapentin" },
-//   { label: "Hydrochlorothiazide", value: "hydrochlorothiazide" },
-//   { label: "Furosemide", value: "furosemide" },
-//   { label: "Metoprolol", value: "metoprolol" },
-//   { label: "Pantoprazole", value: "pantoprazole" },
-//   { label: "Prednisone", value: "prednisone" },
-//   { label: "Clopidogrel", value: "clopidogrel" },
-// ];
 
 export function PrescriptionForm() {
   const [submitStatus, setSubmitStatus] = useState(false);
@@ -109,11 +87,11 @@ export function PrescriptionForm() {
     // Fetch medicines from API
     const fetchMedicines = async () => {
       try {
-        const response = await fetch(
-          "https://patient-care-api.vercel.app/api/medicines/check-stock"
-        );
-        const data = await response.json();
-        setMedicines(data);
+        const response = await api.medicines.getStock();
+        setMedicines(response.data.map(m => ({ 
+          name: m.name, 
+          stock_quantity: m.stock_quantity.toString() 
+        })));
       } catch (error) {
         console.error("Error fetching medicines:", error);
       }
@@ -135,14 +113,41 @@ export function PrescriptionForm() {
     try {
       setError(null);
       
+      // Create prescription
+      const prescriptionResponse = await api.prescriptions.create({
+        doctorId: values.doctorId,
+        patientId: values.patientId,
+        severityImpact: values.severityImpact,
+      });
+
+      // Update medicine stock for each medicine
+      for (const medicine of values.medicines) {
+        await api.medicines.updateStock(
+          medicine.name,
+          parseInt(medicine.quantity)
+        );
+      }
+
+      // Add to pharmacist queue
+      const currentTime = new Date().toISOString();
+      await api.pharmacists.addToQueue({
+        queueNumber: Math.floor(Math.random() * 1000).toString(), // Generate random queue number
+        prescriptionId: prescriptionResponse.id,
+        patientId: values.patientId,
+        medicines: values.medicines,
+        waitTime: "00:10:00", // Default wait time
+        servedTime: "",
+        entryTime: currentTime,
+      });
+
       // Publish to DDS for real-time updates
       if (publishPrescription) {
         publishPrescription({
           ...values,
-          prescriptionId: values.prescriptionId,
+          prescriptionId: prescriptionResponse.id,
           status: "pending",
           ticketNumber: null,
-          timestamp: new Date().toISOString(),
+          timestamp: currentTime,
         });
       }
 
